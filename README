@@ -1,0 +1,47 @@
+Policy Originator Project
+=========================
+ 
+Purpose
+-------
+ 
+When working with a SELinux-enabled system, additional privileges are 
+constantly being checked to see if a specific action is allowed. These 
+actions are most often shown as allow rules, like so:
+ 
+allow sendmail_t kmail_t:process sigchld;
+ 
+These rules are not written and maintained in their raw format. Instead, a 
+higher-level, M4-based language construct is used in which interfaces are 
+defined with more human readable names, like so:
+ 
+mta_send_mail(kmail_t)
+ 
+This interface then translates the call into either more interfaces, or 
+raw SELinux policy rules:
+ 
+interface(`mta_send_mail',`
+        gen_require(`
+                attribute mta_user_agent;
+                type system_mail_t;
+                attribute mta_exec_type;
+        ')
+ 
+        allow $1 mta_exec_type:lnk_file read_lnk_file_perms;
+        corecmd_read_bin_symlinks($1)
+        domtrans_pattern($1, mta_exec_type, system_mail_t)
+ 
+        allow mta_user_agent $1:fd use;
+        allow mta_user_agent $1:process sigchld;
+        allow mta_user_agent $1:fifo_file rw_fifo_file_perms;
+ 
+        dontaudit mta_user_agent $1:unix_stream_socket rw_socket_perms;
+')
+ 
+Most policy development currently focuses on adding additional privileges, 
+and not removing existing privileges. However, it is important that we can 
+query where a privilege comes from, not only to query the existing 
+policies and verify if the rules are still needed, but also to look at 
+potential updates on general policy lines.
+ 
+This also makes it easier for users to understand how policies become as 
+they are.
