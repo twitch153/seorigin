@@ -1,0 +1,36 @@
+policy_module(hwmultd, 1.2)
+
+type hwmultd_t;	     # Process type
+type hwmultd_exec_t; # Execution type for hwmultd
+type hwmultd_log_t;  # Log type for hwmultd
+type hwmultd_var_run_t; # Var execution type for hwmultd
+
+logging_log_file(hwmultd_log_t) # Classifies hwmultd_log_t a logfile
+files_pid_file(hwmultd_var_run_t)
+init_daemon_domain(hwmultd_t, hwmultd_exec_t) #adds these to the init_daemon domain
+
+
+allow hwmultd_t hwmultd_log_t:file create_file_perms;
+allow hwmultd_t hwmultd_log_t:file read_file_perms;
+allow hwmultd_t hwmultd_log_t:file append_file_perms;
+allow hwmultd_t self:netlink_route_socket r_netlink_socket_perms;
+
+role unconfined_r types hwmultd_t;
+
+gen_require(`type unconfined_t; role unconfined_r; ')
+
+domtrans_pattern(unconfined_t, hwmultd_exec_t, hwmultd_t) # Domain transition, if a process with type unconfined_t runs a file with type hwmultd_exec_t, then transition from unconfined_t to hwmultd_t
+
+manage_dirs_pattern(hwmultd_t, hwmultd_var_run_t, hwmultd_var_run_t)
+manage_files_pattern(hwmultd_t, hwmultd_var_run_t, hwmultd_var_run_t)
+
+logging_log_filetrans(hwmultd_t, hwmultd_log_t, file) #This allows the logging files transition
+files_pid_filetrans(hwmultd_t, hwmultd_var_run_t, dir) # This allows the pid files transition
+
+sysnet_read_config(hwmultd_t)
+
+miscfiles_read_localization(hwmultd_t) # This allows hwmultd to read /etc/localtime/
+files_read_etc_files(hwmultd_t)	       # This allow hmultd to read /etc/hwmultd*
+
+
+

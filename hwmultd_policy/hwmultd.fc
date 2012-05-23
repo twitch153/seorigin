@@ -1,0 +1,7 @@
+/usr/sbin/hwmultd -- gen_context(system_u:object_r:hwmultd_exec_t,s0)
+
+/var/log/hwmultd.log -- gen_context(system_u:object_r:hwmultd_log_t,s0)
+
+/var/run/hwmultd(/.*)? gen_context(system_u:object_r:hwmultd_var_run_t,s0)
+
+# This is the path of the file and the context for it.
