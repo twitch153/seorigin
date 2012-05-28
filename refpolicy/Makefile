@@ -224,7 +224,11 @@ ifeq ($(QUIET),y)
 	verbose = @
 endif
 
-M4PARAM += -D mls_num_sens=$(MLS_SENS) -D mls_num_cats=$(MLS_CATS) -D mcs_num_cats=$(MCS_CATS) -D hide_broken_symptoms
+############################################################################################################################
+
+M4PARAM += -D mls_num_sens=$(MLS_SENS) -D mls_num_cats=$(MLS_CATS) -D mcs_num_cats=$(MCS_CATS) -D hide_broken_symptoms -dtae -o debug.log 
+
+############################################################################################################################
 
 # we need exuberant ctags; unfortunately it is named
 # differently on different distros
@@ -367,7 +371,7 @@ $(moddir)/kernel/corenetwork.if: $(moddir)/kernel/corenetwork.te.in $(moddir)/ke
 	$(verbose) $(GREP) "^[[:blank:]]*network_(interface|node|port|packet)(_controlled)?\(.*\)" $< \
 		| $(M4) -D self_contained_policy $(M4PARAM) $(m4divert) $@.m4 $(m4undivert) - \
 		| $(SED) -e 's/dollarsone/\$$1/g' -e 's/dollarszero/\$$0/g' >> $@
-
+	
 $(moddir)/kernel/corenetwork.te: $(m4divert) $(moddir)/kernel/corenetwork.te.m4 $(m4undivert) $(moddir)/kernel/corenetwork.te.in
 	@echo "#" > $@
 	@echo "# This is a generated file!  Instead of modifying this file, the" >> $@
