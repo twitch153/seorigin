@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+
+import sys, getopt, re
+
+"""
+=====================================================================================================
+=
+= This is the parsing component of the SELinux Policy originator.
+=
+= Purpose:
+=	The parser takes the m4 marco expansion of SELinux policies and parses it into a 
+= suitable and useful manner for the workflow component of the policy originator to database.
+= 
+= Author: Devan Franchini
+=
+= Notes: For any questions, errors to report, or general calamity regarding the SELinux policy 
+= originator, please contact me at my email: oot153@gmail.com*
+=
+= *I am not responsible for anything you do of your own accord. If for some rhyme or reason you 
+= start a nuclear holocaust using this parser, or your computer isn't able to create toast anymore
+= and you blame me I will point and laugh. That being said, any other problems that are not
+= self-inflicted will be addressed and acknowledged. I will try and aid you as soon as possible.
+=
+= Look at me still talking while there's science to do....
+=
+=====================================================================================================
+"""
+
+def usage():
+	print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
+
+letter = 'h:i:o:'
+
+keyword = ['input=','output=','help']
+
+opts, extraparams = getopt.getopt(sys.argv[1:], letter, keyword)
+		
+helpCheck = False			  # Boolean check to see if a help argument has been flagged.
+outputCheck = False			  # Boolean check to see if output location has been set.
+defaultLocation= '/home/parsedOutput.txt' # Default location, in case of no declared output location.
+
+for o, p in opts:
+
+	if o in ['-i', '--input']:
+		inputFile=p			
+	elif o in ['-o', '--output']:
+		outputFile=p
+		outputCheck=True
+	elif o in ['-h', '--help']:
+		help=usage()
+		helpCheck=True
+
+#The above sets up the arguement flags for execution of this script.
+
+if outputCheck == False:	
+	outputFile=defaultLocation
+	print ("\nOutput location not specified, defaulting to: " + outputFile)
+
+# Above code is a sanity check to make sure the parsed information get writting to some location.
+
+key = re.compile((r'allow | define')) # We are searching for these things inside the file.
+
+try:
+	f=open(inputFile, 'r') # This creates the function for opening the file, 
+			       # and assigns it to f.
+	parsedOut = open(outputFile, 'w') #This assigns a new file to parsedOut
+		
+	c=f.read()     # Reads in the file to be edited and assigns it to c.	
+	matches=key.findall(c)
+	
+	for m in matches:
+			parsedOut.write(r"We've struck oil!: " + m + "\n")
+
+
+except IOError as err:
+	if helpCheck:
+		pass
+	else:
+		print("\nI/O error: {0}".format(err),"\n")
+		usage()
+except NameError as err:
+	if helpCheck:
+		pass
+	else:
+		print("\nName error: {0}".format(err),"\n")
+		usage()
+
