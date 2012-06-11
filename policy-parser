@@ -104,21 +104,14 @@ try:
         parsedOut.write(r"# " + i + "\n")
         parsedOut.write(i + "\n\n")
         '''
+    f.close()
 
 except IOError as err:
 
-        if helpCheck:
-            pass
-        else:
-            print("\nI/O error: {0}".format(err),"\n")
-            usage()
+    print("\nI/O error: {0}".format(err),"\n")
+    usage()
 
 except NameError as err:
 
-        if helpCheck:
-            pass
-        else:
-            print("\nName error: {0}".format(err),"\n")
-            usage()
-finally:
-    f.close()
+    print("\nName error: {0}".format(err),"\n")
+    usage()
