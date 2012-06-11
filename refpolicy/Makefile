@@ -226,7 +226,7 @@ endif
 
 ############################################################################################################################
 
-M4PARAM += -D mls_num_sens=$(MLS_SENS) -D mls_num_cats=$(MLS_CATS) -D mcs_num_cats=$(MCS_CATS) -D hide_broken_symptoms -dtae -o debug.log 
+M4PARAM += -D mls_num_sens=$(MLS_SENS) -D mls_num_cats=$(MLS_CATS) -D mcs_num_cats=$(MCS_CATS) -D hide_broken_symptoms -dtaefl -o debug.log 
 
 ############################################################################################################################
 
