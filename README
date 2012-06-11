@@ -46,10 +46,25 @@ potential updates on general policy lines.
 This also makes it easier for users to understand how policies become as 
 they are.
 
-TESTING:
+Testing
+-------
 
  In order to test this you would need to do the following:
  1.) Make a debug.log by creating a policy package - "make <policy>.pp" in the refpolicy folder.
  2.) Grab input from debug.log with policy parser script - "python policy-parser -i <directory of file> -o <desired output location>
+
+
+Contributors
+------------
+
+	Devan Franchini		<oot153@gmail.com>
+	Anthony G. Basile	<blueness@gentoo.org>
+
+
+Bug Reporting:
+--------------
+
+	For now please submit bug reports by email to the contributors.
+
 
 
