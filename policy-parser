@@ -8,8 +8,8 @@ import sys, getopt, re, os
 = This is the parsing component of the SELinux Policy originator.
 =
 = Purpose:
-=	The parser takes the m4 marco expansion of SELinux policies and parses it into a 
-= suitable and useful manner for the workflow component of the policy originator to database.
+= The parser takes the m4 marco expansion of SELinux policies and parses it into a suitable and
+= useful manner for the workflow component of the policy originator to database.
 = 
 = Author: Devan Franchini
 =
@@ -28,57 +28,46 @@ import sys, getopt, re, os
 
 def usage():
     print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
+    sys.exit(0)
 
-letter = 'h:i:o:'
-
+letter = 'hi:o:'
 keyword = ['input=','output=','help']
 
 opts, extraparams = getopt.getopt(sys.argv[1:], letter, keyword)
-		
-helpCheck = False			 	    # Boolean check to see if a help argument has been flagged.
-outputCheck = False			  	    # Boolean check to see if output location has been set.
-defaultLocation= os.path.join(os.environ["HOME"],'parsedOutput.txt') # Default location, in case of no declared output location.
 
+outputCheck = False                                                  # Boolean check to see if output location has been set.
+defaultLocation= os.path.join(os.environ["PWD"],'parsedOutput.txt') # Default location, in case of no declared output location.
+
+#Set up arguement flags for execution of this script.
 for o, p in opts:
-
     if o in ['-i', '--input']:
-        inputFile=p			
+        inputFile=p
     elif o in ['-o', '--output']:
         outputFile=p
         outputCheck=True
     elif o in ['-h', '--help']:
-        help=usage()
-        helpCheck=True
+        usage()
 
-#The above sets up the arguement flags for execution of this script.
-
-if outputCheck == False:	
+# Sanity check to make sure the parsed information is getting written to some location.
+if outputCheck == False:
     outputFile=defaultLocation
     print ("\nOutput location not specified, defaulting to: " + outputFile)
 
-# Above code is a sanity check to make sure the parsed information get writting to some location.
-
- 
-definition = re.compile("iughoiersg")  # This needs to be refined to capture the definition record
 
 '''
 TODO: 
-	Once both the source and definition records and successfully captured we need to write the
+Once both the source and definition records and successfully captured we need to write the
 format of a record injected with the groups captured from the regular expression.
-
-See: http://pastebin.com/8C3haum7/
 '''
 
 try:
-    f=open(inputFile, 'r')		  # This creates the function for opening the file, 
-			       		  # and assigns it to f.
+    f=open(inputFile, 'r')            # This creates the function for opening the file, and assigns it to f.
     parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
-		
-    fileLines=f.readlines()     			  # Reads in the file to be edited and assigns it to c.	
+    fileLines=f.readlines()           # Reads in the file to be edited and assigns it to c.
 
     sourceRecordCount = 0
     definitionRecordCount = 0
-	
+
     for i in fileLines:
         
         source = re.search('\.te:', i)
@@ -107,11 +96,9 @@ try:
     f.close()
 
 except IOError as err:
-
     print("\nI/O error: {0}".format(err),"\n")
     usage()
 
 except NameError as err:
-
     print("\nName error: {0}".format(err),"\n")
     usage()

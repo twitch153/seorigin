@@ -1,3 +1,4 @@
 debug.log
+parsedOutput.txt
 *.pp
 refpolicy/tmp/
