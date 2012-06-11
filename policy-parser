@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, getopt, re
+import sys, getopt, re, os
 
 """
 =====================================================================================================
@@ -27,7 +27,7 @@ import sys, getopt, re
 """
 
 def usage():
-	print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
+    print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
 
 letter = 'h:i:o:'
 
@@ -35,53 +35,90 @@ keyword = ['input=','output=','help']
 
 opts, extraparams = getopt.getopt(sys.argv[1:], letter, keyword)
 		
-helpCheck = False			  # Boolean check to see if a help argument has been flagged.
-outputCheck = False			  # Boolean check to see if output location has been set.
-defaultLocation= '/home/parsedOutput.txt' # Default location, in case of no declared output location.
+helpCheck = False			 	    # Boolean check to see if a help argument has been flagged.
+outputCheck = False			  	    # Boolean check to see if output location has been set.
+defaultLocation= os.path.join(os.environ["HOME"],'parsedOutput.txt') # Default location, in case of no declared output location.
 
 for o, p in opts:
 
-	if o in ['-i', '--input']:
-		inputFile=p			
-	elif o in ['-o', '--output']:
-		outputFile=p
-		outputCheck=True
-	elif o in ['-h', '--help']:
-		help=usage()
-		helpCheck=True
+    if o in ['-i', '--input']:
+        inputFile=p			
+    elif o in ['-o', '--output']:
+        outputFile=p
+        outputCheck=True
+    elif o in ['-h', '--help']:
+        help=usage()
+        helpCheck=True
 
 #The above sets up the arguement flags for execution of this script.
 
 if outputCheck == False:	
-	outputFile=defaultLocation
-	print ("\nOutput location not specified, defaulting to: " + outputFile)
+    outputFile=defaultLocation
+    print ("\nOutput location not specified, defaulting to: " + outputFile)
 
 # Above code is a sanity check to make sure the parsed information get writting to some location.
 
-key = re.compile((r'allow | define')) # We are searching for these things inside the file.
+ 
+definition = re.compile("iughoiersg")  # This needs to be refined to capture the definition record
+
+'''
+TODO: 
+	Once both the source and definition records and successfully captured we need to write the
+format of a record injected with the groups captured from the regular expression.
+
+See: http://pastebin.com/8C3haum7/
+'''
 
 try:
-	f=open(inputFile, 'r') # This creates the function for opening the file, 
-			       # and assigns it to f.
-	parsedOut = open(outputFile, 'w') #This assigns a new file to parsedOut
+    f=open(inputFile, 'r')		  # This creates the function for opening the file, 
+			       		  # and assigns it to f.
+    parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
 		
-	c=f.read()     # Reads in the file to be edited and assigns it to c.	
-	matches=key.findall(c)
-	
-	for m in matches:
-			parsedOut.write(r"We've struck oil!: " + m + "\n")
+    fileLines=f.readlines()     			  # Reads in the file to be edited and assigns it to c.	
 
+    sourceRecordCount = 0
+    definitionRecordCount = 0
+	
+    for i in fileLines:
+        
+        source = re.search('\.te:', i)
+
+        try:
+            if source != None:
+                print("Source: " + str(source))
+        except AttributeError as err:
+            continue
+
+        if source:
+           
+            sourceRecord = re.sub(' ^.*\- ', '', source.group(0))
+            print("Sourceline: " + sourceRecord)
+            sourceRecordCount += 1
+            parsedOut.write(r"## source record " + str(sourceRecordCount) + "\n")
+            parsedOut.write(r"# " + sourceRecord + "\n")
+            parsedOut.write(str(source) + "\n\n") 
+        #matchDefine=definition.readlines()
+        '''
+        definitionRecordCount += 1
+        parsedOut.write(r"## definition record " + str(definitionRecordCount) + "\n")
+        parsedOut.write(r"# " + i + "\n")
+        parsedOut.write(i + "\n\n")
+        '''
 
 except IOError as err:
-	if helpCheck:
-		pass
-	else:
-		print("\nI/O error: {0}".format(err),"\n")
-		usage()
-except NameError as err:
-	if helpCheck:
-		pass
-	else:
-		print("\nName error: {0}".format(err),"\n")
-		usage()
 
+        if helpCheck:
+            pass
+        else:
+            print("\nI/O error: {0}".format(err),"\n")
+            usage()
+
+except NameError as err:
+
+        if helpCheck:
+            pass
+        else:
+            print("\nName error: {0}".format(err),"\n")
+            usage()
+finally:
+    f.close()
