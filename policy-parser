@@ -53,13 +53,6 @@ if outputCheck == False:
     outputFile=defaultLocation
     print ("\nOutput location not specified, defaulting to: " + outputFile)
 
-
-'''
-TODO: 
-Once both the source and definition records and successfully captured we need to write the
-format of a record injected with the groups captured from the regular expression.
-'''
-
 try:
     f=open(inputFile, 'r')            # This creates the function for opening the file, and assigns it to f.
     parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
@@ -75,7 +68,7 @@ try:
         try:
             if source != None:
                 print("Source: " + str(source))
-        except AttributeError as err:
+        except AttributeError:
             continue
 
         if source:
@@ -86,12 +79,16 @@ try:
             parsedOut.write(r"## source record " + str(sourceRecordCount) + "\n")
             parsedOut.write(r"# " + sourceRecord + "\n")
             parsedOut.write(str(source) + "\n\n") 
-        #matchDefine=definition.readlines()
         '''
-        definitionRecordCount += 1
-        parsedOut.write(r"## definition record " + str(definitionRecordCount) + "\n")
-        parsedOut.write(r"# " + i + "\n")
-        parsedOut.write(i + "\n\n")
+        define = re.search('define',i)
+
+        elif define:
+
+            defintionRecord = re.sub(' ^.*\- ', '', define.group(0))
+            definitionRecordCount += 1
+            parsedOut.write(r"## definition record " + str(definitionRecordCount) + "\n")
+            parsedOut.write(r"# " + definitionRecord + "\n")
+            parsedOut.write(str(define) + "\n\n")
         '''
     f.close()
 
