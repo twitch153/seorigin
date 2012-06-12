@@ -59,37 +59,18 @@ try:
     fileLines=f.readlines()           # Reads in the file to be edited and assigns it to c.
 
     sourceRecordCount = 0
-    definitionRecordCount = 0
+    #definitionRecordCount = 0 #lint: add this later when we need it
 
-    for i in fileLines:
-        
-        source = re.search('\.te:', i)
-
-        try:
-            if source != None:
-                print("Source: " + str(source))
-        except AttributeError:
-            continue
-
+    for line in fileLines:
+        source = re.search('\.te:', line)
+        #if source is not None, then we have a .te line
         if source:
-           
-            sourceRecord = re.sub(' ^.*\- ', '', source.group(0))
-            print("Sourceline: " + sourceRecord)
+            sourceRecord = re.sub('^.*\- ', '', line)
             sourceRecordCount += 1
-            parsedOut.write(r"## source record " + str(sourceRecordCount) + "\n")
-            parsedOut.write(r"# " + sourceRecord + "\n")
-            parsedOut.write(str(source) + "\n\n") 
-        '''
-        define = re.search('define',i)
+            parsedOut.write("## source record " + str(sourceRecordCount) + "\n")
+            parsedOut.write("# " + sourceRecord + "\n")
+            print("DEBUG: " + str(sourceRecordCount) + ": " + sourceRecord),
 
-        elif define:
-
-            defintionRecord = re.sub(' ^.*\- ', '', define.group(0))
-            definitionRecordCount += 1
-            parsedOut.write(r"## definition record " + str(definitionRecordCount) + "\n")
-            parsedOut.write(r"# " + definitionRecord + "\n")
-            parsedOut.write(str(define) + "\n\n")
-        '''
     f.close()
 
 except IOError as err:
