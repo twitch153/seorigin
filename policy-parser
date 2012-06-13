@@ -30,7 +30,7 @@ def usage():
     print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
     sys.exit(0)
 
-letter = 'hi:o:'
+letter = 'i:o:h'
 keyword = ['input=','output=','help']
 
 opts, extraparams = getopt.getopt(sys.argv[1:], letter, keyword)
@@ -58,7 +58,8 @@ try:
     parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
     fileLines=f.readlines()           # Reads in the file to be edited and assigns it to c.
 
-    sourceRecordCount = 0
+    sourceCount = 0
+    definitionCount = 0
     for line in fileLines:
         # Parse only if we have a .te line
         if re.search('\.te:', line):
@@ -68,11 +69,28 @@ try:
             if re.search('^\w*$', line):         # Skip lines that are all white space
                 continue
 
-            sourceRecordCount += 1
+            sourceCount += 1
             parsedOut.write("## source record ")
-            parsedOut.write(str(sourceRecordCount))
+            parsedOut.write(str(sourceCount) + "\n")
             parsedOut.write("# " + line)
-            print("DEBUG: " + str(sourceRecordCount) + ": " + line),
+            print("Source DEBUG: " + str(sourceCount) + ": " + line)
+
+        elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
+
+            line = re.sub('^.*\- ', '', line)
+            line = re.sub('dnl.*$', '', line)
+            line = re.sub('divert\(-1\)','', line)
+            line = re.sub('define\(','', line)
+            line = re.sub(',', '', line)
+            if re.search('^\w*$', line):
+                continue
+
+            definitionCount += 1
+            parsedOut.write("## definition record ")
+            parsedOut.write(str(definitionCount) + "\n")
+            parsedOut.write("# " + line)
+            parsedOut.write(line)
+            print("Definition DEBUG: " + str(definitionCount) + ": " + line)
 
     f.close()
 
