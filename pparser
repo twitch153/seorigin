@@ -76,8 +76,8 @@ comment
 def read_input( infile ):
 	try:
 		fd = open( infile,  'r' )
-	except Exception, e:
-		print("\nI/O error: {0}".format(e),"\n")
+	except Exception as err:
+		print("\nI/O error: {0}".format(err),"\n")
 		usage()
 
 	lines = fd.readlines()
@@ -112,8 +112,8 @@ comment
 def write_output( outfile, output ):
 	try:
 		fd = open( outfile, 'w' )
-	except Exception, e:
-		print("\nI/O error: {0}".format(e),"\n")
+	except Exception as err:
+		print("\nI/O error: {0}".format(err),"\n")
 		usage()
 
 	fd.write( output )
