@@ -1,0 +1,141 @@
+#!/usr/bin/env python
+
+import sys, getopt, re, os
+
+"""
+  This file is part of seorigin
+  Copyright (C) 2012  Devan Franchini, Anthony G. Basile, Sven Vermeulen
+
+  seorigin is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+
+  seorigin is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with seorigin.  If not, see <http://www.gnu.org/licenses/>.
+
+----
+  pparser.py is the parsing component of seorigin, the SELinux Policy originator.
+
+  Purpose:
+  The parser takes the m4 marco expansion of SELinux policies and parses it into a suitable and
+  useful manner for the workflow component of the policy originator to database.
+
+  See the README for more information.
+
+"""
+
+"""
+comment
+"""
+def usage():
+	print("Usage: pparser [( -i | --input ) infile] [( -o | --output ) outfile]")
+	sys.exit(0)
+
+
+"""
+comment
+"""
+def parse_cmd_args():
+	short_opts = 'i:o:h'
+	long_opts  = ['input=', 'output=', 'help']
+
+	opts, extraparams = getopt.getopt( sys.argv[1:], short_opts, long_opts )
+
+	infile = 'refpolicy/debug.log'
+	outfile = os.path.join( os.environ['PWD'], 'parsed.txt' )
+
+	default_infile = True
+	default_outfile = True
+
+	for o, p in opts:
+		if o in ['-i', '--input']:
+			default_infile = False
+			infile = p
+		elif o in ['-o', '--output']:
+			default_outfile = False
+			outfile = p
+		elif o in ['-h', '--help']:
+			usage()
+
+	if default_infile:
+		print("Defaulting input = ", infile)
+	if default_outfile:
+		print("Defaulting output = ", outfile)
+
+	return ( infile, outfile )
+
+
+"""
+comment
+"""
+def read_input( infile ):
+	try:
+		fd = open( infile,  'r' )
+	except Exception, e:
+		print("\nI/O error: {0}".format(e),"\n")
+		usage()
+
+	lines = fd.readlines()
+	fd.close()
+
+	return lines
+
+
+"""
+comment
+"""
+def parse_lines( lines ):
+	output = ''
+	count = 0
+	for line in lines:
+		if re.search('\.te:', line):
+			line = re.sub('^.*\- ', '', line)    # Greedily remove everything before -
+			line = re.sub('dnl.*$', '', line)    # Remove macro comments
+			if re.search('^\w*$', line):         # Skip lines that are all white space
+				continue
+
+			count += 1
+			output += "## source record "
+			output += str( count )
+			output += "# " + line
+	return output
+
+
+"""
+comment
+"""
+def write_output( outfile, output ):
+	try:
+		fd = open( outfile, 'w' )
+	except Exception, e:
+		print("\nI/O error: {0}".format(e),"\n")
+		usage()
+
+	fd.write( output )
+	fd.close()
+
+
+"""
+comment
+"""
+def main():
+
+	( infile, outfile ) = parse_cmd_args()
+
+	lines = read_input( infile )
+
+	output = parse_lines( lines )
+
+	write_output( outfile, output )
+
+
+"""
+Because I'm python
+"""
+if __name__ == "__main__":
+	main()
