@@ -64,8 +64,10 @@ try:
         # Parse only if we have a .te line
         if re.search('\.te:', line):
 
-            line = re.sub('^.*\- ', '', line)    # Greedily remove everything before -
+            #line = re.sub('^.*\- ', '', line)    # Greedily remove everything before -
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
+            line = re.sub('\m4trace:','', line)
+            line = re.sub(': -1-', '', line)
             if re.search('^\w*$', line):         # Skip lines that are all white space
                 continue
 
