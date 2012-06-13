@@ -5,25 +5,32 @@ import sys, getopt, re, os
 """
 =====================================================================================================
 =
-= This is the parsing component of the SELinux Policy originator.
+=   This file is part of seorigin
+=  Copyright (C) 2012  Devan Franchini, Anthony G. Basile, Sven Vermeulen
+=
+=  seorigin is free software: you can redistribute it and/or modify
+=  it under the terms of the GNU General Public License as published by
+=  the Free Software Foundation, either version 3 of the License, or
+=
+=  seorigin is distributed in the hope that it will be useful,
+=  but WITHOUT ANY WARRANTY; without even the implied warranty of
+=  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+=  GNU General Public License for more details.
+=
+=  You should have received a copy of the GNU General Public License
+=  along with seorigin.  If not, see <http://www.gnu.org/licenses/>.
+=
+=  ----
+= policy-parser.py is the parsing component of seorigin, the SELinux Policy originator.
 =
 = Purpose:
 = The parser takes the m4 marco expansion of SELinux policies and parses it into a suitable and
 = useful manner for the workflow component of the policy originator to database.
 = 
-= Author: Devan Franchini
-=
-= Notes: For any questions, errors to report, or general calamity regarding the SELinux policy 
-= originator, please contact me at my email: oot153@gmail.com*
-=
-= *I am not responsible for anything you do of your own accord. If for some rhyme or reason you 
-= start a nuclear holocaust using this parser, or your computer isn't able to create toast anymore
-= and you blame me I will point and laugh. That being said, any other problems that are not
-= self-inflicted will be addressed and acknowledged. I will try and aid you as soon as possible.
-=
-= Look at me still talking while there's science to do....
+= See README for more information.
 =
 =====================================================================================================
+
 """
 
 def usage():
@@ -67,14 +74,16 @@ try:
             #line = re.sub('^.*\- ', '', line)    # Greedily remove everything before -
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
             line = re.sub('\m4trace:','', line)
-            line = re.sub(': -1-', '', line)
+            line = re.sub(': \-\d+\-', '', line)
+            sourceLoc = re.sub('\s+.*$', '', line)    # Greedily remove everything before line number
             if re.search('^\w*$', line):         # Skip lines that are all white space
                 continue
 
             sourceCount += 1
             parsedOut.write("## source record ")
             parsedOut.write(str(sourceCount) + "\n")
-            parsedOut.write("# " + line)
+            parsedOut.write("# " + sourceLoc + "\n")
+            parsedOut.write(line + "\n")
             print("Source DEBUG: " + str(sourceCount) + ": " + line)
 
         elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
@@ -83,16 +92,16 @@ try:
             line = re.sub('dnl.*$', '', line)
             line = re.sub('divert\(-1\)','', line)
             line = re.sub('define\(','', line)
-            line = re.sub(',', '', line)
+            definitionCall = re.sub(',', '', line)
             if re.search('^\w*$', line):
                 continue
 
             definitionCount += 1
             parsedOut.write("## definition record ")
             parsedOut.write(str(definitionCount) + "\n")
-            parsedOut.write("# " + line)
-            parsedOut.write(line)
-            print("Definition DEBUG: " + str(definitionCount) + ": " + line)
+            parsedOut.write("# " + definitionCall + "\n")
+            parsedOut.write(line + "\n")
+            print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
 
     f.close()
 
