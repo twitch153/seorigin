@@ -70,23 +70,39 @@ try:
     for line in fileLines:
         # Parse only if we have a .te line
         if re.search('\.te:', line):
-
-            #line = re.sub('^.*\- ', '', line)    # Greedily remove everything before -
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
             line = re.sub('\m4trace:','', line)
             line = re.sub(': \-\d+\-', '', line)
-            sourceLoc = re.sub('\s+.*$', '', line)    # Greedily remove everything before line number
-            if re.search('^\w*$', line):         # Skip lines that are all white space
+            # Take line and break the parts after the file location into the source expression
+            sourceExpression = re.sub('^.*\d+ ', '',line)
+            sourceExpression = re.sub('\s', '', sourceExpression) # Remove all white space in the line
+            sourceExpression = re.sub('policy.*$', '', sourceExpression)
+            sourceExpression = re.sub('[ififn]def.*$', '', sourceExpression)
+            sourceExpression = re.sub('ifelse.*$', '', sourceExpression)
+            sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
+            sourceExpression = re.sub('popdef.*$', '', sourceExpression)
+            sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
+            sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression)
+            
+            sourceExpression = re.sub('->', '', sourceExpression)
+            sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
+            sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
+            # Greedily remove everything after line number and turn it into our source location
+            sourceLocation = re.sub('\s+.*$', '', line)  
+            if re.search('^\w*$', sourceExpression):       # Skip lines that are all white space
+                continue
+            elif re.search('^\w*$', line):
+                continue
+            elif re.search('^\w*$', sourceLocation):
                 continue
 
             sourceCount += 1
             parsedOut.write("## source record ")
             parsedOut.write(str(sourceCount) + "\n")
-            parsedOut.write("# " + sourceLoc + "\n")
-            parsedOut.write(line + "\n")
-            print("Source DEBUG: " + str(sourceCount) + ": " + line)
-
-        elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
+            parsedOut.write("# " + sourceLocation + "\n")
+            parsedOut.write(sourceExpression + "\n\n")
+        # Parse out only if we have an "all_interfaces.conf:" line
+        elif re.search('\m4trace:tmp/all_interfaces.conf:*.', line):
 
             line = re.sub('^.*\- ', '', line)
             line = re.sub('dnl.*$', '', line)
@@ -99,7 +115,7 @@ try:
             definitionCount += 1
             parsedOut.write("## definition record ")
             parsedOut.write(str(definitionCount) + "\n")
-            parsedOut.write("# " + definitionCall + "\n")
+            parsedOut.write("# " + definitionCall)
             parsedOut.write(line + "\n")
             print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
 
