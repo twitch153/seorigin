@@ -37,37 +37,54 @@ def usage():
     print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
     sys.exit(0)
 
-letter = 'i:o:h'
-keyword = ['input=','output=','help']
+def parse_cmd_args():
+    shortOpts = 'i:o:h'
+    longOpts = ['input=','output=','help']
 
-opts, extraparams = getopt.getopt(sys.argv[1:], letter, keyword)
+    opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
+    
+    inputCheck = True    # Boolean check to see if input location has been set.
+    outputCheck = True   # Boolean check to see if output location has been set.
+    defInFile = 'refpolicy/debug.log' # Default input location.
+    defOutFile = os.path.join(os.environ["PWD"],'parsedOutput.txt') # Default output location.
 
-outputCheck = False                                                  # Boolean check to see if output location has been set.
-defaultLocation= os.path.join(os.environ["PWD"],'parsedOutput.txt') # Default location, in case of no declared output location.
-
-#Set up arguement flags for execution of this script.
-for o, p in opts:
-    if o in ['-i', '--input']:
-        inputFile=p
-    elif o in ['-o', '--output']:
-        outputFile=p
-        outputCheck=True
-    elif o in ['-h', '--help']:
-        usage()
+    #Set up arguement flags for script execution.
+    for o, p in opts:
+        if o in ['-i', '--input']:
+            inputFile=p
+            inputCheck = False
+        elif o in ['-o', '--output']:
+            outputFile=p
+            outputCheck= False
+        elif o in ['-h', '--help']:
+            usage()
 
 # Sanity check to make sure the parsed information is getting written to some location.
-if outputCheck == False:
-    outputFile=defaultLocation
-    print ("\nOutput location not specified, defaulting to: " + outputFile)
+    if outputCheck:
+        outputFile=defOutFile
+        print ("\nOutput location not specified, defaulting to: " + defOutFile)
+    if inputCheck:
+        inputFile=defInFile
+        print ("\nInput location not specified, defaulting to: " + defInFile)
+    return( inputFile, outputFile )
 
-try:
-    f=open(inputFile, 'r')            # This creates the function for opening the file, and assigns it to f.
-    parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
-    fileLines=f.readlines()           # Reads in the file to be edited and assigns it to c.
+def readInput( inputFile ):
+    try:
+        f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
+    except Exception as err:
+        print("\n Error: {0}".format(err),"\n")    
+        usage()
+        
+    fileLines = f.readlines()        
+    f.close()
 
+    return fileLines
+
+def parseFile( lines ):
+    output = ''
     sourceCount = 0
     definitionCount = 0
-    for line in fileLines:
+    for line in lines:
         # Parse only if we have a .te line
         if re.search('\.te:', line):
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
@@ -82,8 +99,7 @@ try:
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
-            sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression)
-            
+            sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression) 
             sourceExpression = re.sub('->', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
@@ -97,10 +113,10 @@ try:
                 continue
 
             sourceCount += 1
-            parsedOut.write("## source record ")
-            parsedOut.write(str(sourceCount) + "\n")
-            parsedOut.write("# " + sourceLocation + "\n")
-            parsedOut.write(sourceExpression + "\n\n")
+            output += "## source record "
+            output += str(sourceCount) + "\n"
+            output += "# " + sourceLocation + "\n"
+            output += sourceExpression + "\n\n"
         # Parse out only if we have an "all_interfaces.conf:" line
         elif re.search('\m4trace:tmp/all_interfaces.conf:*.', line):
 
@@ -113,18 +129,28 @@ try:
                 continue
 
             definitionCount += 1
-            parsedOut.write("## definition record ")
-            parsedOut.write(str(definitionCount) + "\n")
-            parsedOut.write("# " + definitionCall)
-            parsedOut.write(line + "\n")
+            output += "## definition record "
+            output += str(definitionCount) + "\n"
+            output += "# " + definitionCall
+            output += line + "\n"
             print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
 
-    f.close()
+    return output
 
-except IOError as err:
-    print("\nI/O error: {0}".format(err),"\n")
-    usage()
+def writeOut( outputFile, output ):
+    try:
+        parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
 
-except NameError as err:
-    print("\nName error: {0}".format(err),"\n")
-    usage()
+    parsedOut.write(output)
+    parsedOut.close()
+
+def main():
+    (inputFile, outputFile) = parse_cmd_args()
+    lines = readInput( inputFile )
+    output = parseFile( lines )
+    writeOut( outputFile, output )
+if __name__ == "__main__":
+    main()
