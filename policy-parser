@@ -3,7 +3,7 @@
 import sys, getopt, re, os
 
 """
-=====================================================================================================
+================================================================================
 =
 =   This file is part of seorigin
 =  Copyright (C) 2012  Devan Franchini, Anthony G. Basile, Sven Vermeulen
@@ -29,14 +29,21 @@ import sys, getopt, re, os
 = 
 = See README for more information.
 =
-=====================================================================================================
-
+================================================================================
 """
 
+"""
+usage() is printed out in 2 cases:
+1.) The -h flag is set in the execution of the script.
+2.) There is an exception caught.
+"""
 def usage():
     print("Proper usage:\npolicy-parser -i(--input) [file to parse] -o(--output) [parsed file location]")
     sys.exit(0)
 
+"""
+parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
+"""
 def parse_cmd_args():
     shortOpts = 'i:o:h'
     longOpts = ['input=','output=','help']
@@ -68,6 +75,11 @@ def parse_cmd_args():
         print ("\nInput location not specified, defaulting to: " + defInFile)
     return( inputFile, outputFile )
 
+
+"""
+readInput( inputFile ) reads in the specified file. If a file does not exist it will shoot an exception and print out
+usage().
+"""
 def readInput( inputFile ):
     try:
         f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
@@ -80,6 +92,10 @@ def readInput( inputFile ):
 
     return fileLines
  
+""" 
+parseFile( lines ) the lines specified of raw SELinux m4 macro expansions and puts them into Source, & Definition records.
+For our intents and purposes we'll be parsing entire input files.
+"""
 def parseFile( lines ):
     output = ''
     sourceCount = 0
@@ -178,6 +194,9 @@ def parseFile( lines ):
 
     return output
 
+"""
+writeOut( outputFile, output) writes output to the file we want to have it outputted to.
+"""
 def writeOut( outputFile, output ):
     try:
         parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
@@ -188,10 +207,17 @@ def writeOut( outputFile, output ):
     parsedOut.write(output)
     parsedOut.close()
 
+""" 
+main(), this is where the magic happens.
+"""
 def main():
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
     writeOut( outputFile, output )
+
+"""
+The main function is run below.
+"""
 if __name__ == "__main__":
     main()
