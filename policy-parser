@@ -85,6 +85,7 @@ def parseFile( lines ):
     sourceCount = 0
     definitionCount = 0
     multiLineCheck = False
+    definitionLine = False
     for line in lines:
 # Beginning of source record parsing.
         # Parse only if we have a .te line
@@ -132,13 +133,15 @@ def parseFile( lines ):
             if re.search('^\w*$', definitionCall):
                 continue
             # Skips any popdef() lines
-            elif re.search('popdef', line):
+            if re.search('popdef', line):
                 multiLineCheck = False
         if multiLineCheck:
             # Bypasses any .fc files.
             if re.search('\.fc:.*$', line):
                 continue
             definition = re.sub('^.*\- ', '', line)
+            definition = re.sub('divert\(-1\)','', definition)
+            definition = re.sub('^.dnl*.$', '', definition)
             definition = re.sub('pushdef.*$', '', definition)
             definition = re.sub('popdef.*$', '', definition)
             definition = re.sub('policy_m4_comment.*$', '', definition)
@@ -152,13 +155,21 @@ def parseFile( lines ):
             definition = re.sub('^\'*\)', '', definition)
             if re.search('^\w*$', definition):
                 continue
-            definition = re.sub('^define\(.*$', '\n', definition)
-            print(definition)
-            definitionCount += 1
-            output += "## definition record "
-            output += str(definitionCount) + "\n"
-            output += "# " + definitionCall
-            output += definition + "\n"
+
+            if re.search('^define', definition):     
+                definitionLine = True
+            else:
+                definitionLine = False
+            if definitionLine:
+                definitionCount += 1
+                output += "\n## definition record "
+                output += str(definitionCount) + "\n"
+                output += "# " + definitionCall
+            definition = re.sub('^define\(.*$', '', definition)
+            if re.search('^\w*$', definition):
+                continue
+
+            output += definition + '\n'
         #elif re.search('\.spt:', line):
 
             #line = re.sub('^.*\- ', '', line)
