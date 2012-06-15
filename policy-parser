@@ -129,36 +129,36 @@ def parseFile( lines ):
             definitionCall = re.sub('divert\(-1\)','', definitionCall)
             definitionCall = re.sub('define\(','', definitionCall)
             definitionCall = re.sub(',', '', definitionCall)
-            if re.search('^\w*$', line):
+            if re.search('^\w*$', definitionCall):
                 continue
+            # Skips any popdef() lines
             elif re.search('popdef', line):
                 multiLineCheck = False
-                continue
         if multiLineCheck:
+            # Bypasses any .fc files.
             if re.search('\.fc:.*$', line):
                 continue
-            line = re.sub('^.*\- ', '', line)
-            line = re.sub('pushdef.*$', '', line)
-            line = re.sub('popdef.*$', '', line)
-            line = re.sub('policy_m4_comment.*$', '', line)
-            if re.search('#.*$', line):
+            definition = re.sub('^.*\- ', '', line)
+            definition = re.sub('pushdef.*$', '', definition)
+            definition = re.sub('popdef.*$', '', definition)
+            definition = re.sub('policy_m4_comment.*$', '', definition)
+            if re.search('#.*$', definition):
                 continue
-            if re.search('gen_require\(\`.*$', line):
+            if re.search('gen_require\(\`.*$', definition):
                 continue
-            line = re.sub('\n', '', line)
-            line = re.sub('\t', '', line)
-            line = re.sub('^type.*$', '', line)
-            line = re.sub('^\'*\)', '', line)
-            if re.search('^\w*$', line):
+            definition = re.sub('\n', '', definition)
+            definition = re.sub('\t', '', definition)
+            definition = re.sub('^type.*$', '', definition)
+            definition = re.sub('^\'*\)', '', definition)
+            if re.search('^\w*$', definition):
                 continue
-            line = re.sub('^define\(.*$', '\n', line)
-            print(line)
+            definition = re.sub('^define\(.*$', '\n', definition)
+            print(definition)
             definitionCount += 1
             output += "## definition record "
             output += str(definitionCount) + "\n"
             output += "# " + definitionCall
-            output += line + "\n"
-            #print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
+            output += definition + "\n"
         #elif re.search('\.spt:', line):
 
             #line = re.sub('^.*\- ', '', line)
