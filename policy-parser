@@ -46,7 +46,7 @@ def parse_cmd_args():
     inputCheck = True    # Boolean check to see if input location has been set.
     outputCheck = True   # Boolean check to see if output location has been set.
     defInFile = 'refpolicy/debug.log' # Default input location.
-    defOutFile = os.path.join(os.environ["PWD"],'parsedOutput.txt') # Default output location.
+    defOutFile = os.path.join(os.environ["PWD"],'parsed_output.txt') # Default output location.
 
     #Set up arguement flags for script execution.
     for o, p in opts:
@@ -72,21 +72,24 @@ def readInput( inputFile ):
     try:
         f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
     except Exception as err:
-        print("\n Error: {0}".format(err),"\n")    
+        print("\n Error: {0}".format(err),"\n")
         usage()
         
-    fileLines = f.readlines()        
+    fileLines = f.readlines()
     f.close()
 
     return fileLines
-
+ 
 def parseFile( lines ):
     output = ''
     sourceCount = 0
     definitionCount = 0
+    multiLineCheck = False
     for line in lines:
+# Beginning of source record parsing.
         # Parse only if we have a .te line
         if re.search('\.te:', line):
+            multiLineCheck = False
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
             line = re.sub('\m4trace:','', line)
             line = re.sub(': \-\d+\-', '', line)
@@ -100,16 +103,16 @@ def parseFile( lines ):
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
             sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression) 
-            sourceExpression = re.sub('->', '', sourceExpression)
+            sourceExpression = re.sub('\->', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
             sourceLocation = re.sub('\s+.*$', '', line)  
             if re.search('^\w*$', sourceExpression):       # Skip lines that are all white space
                 continue
-            elif re.search('^\w*$', line):
+            if re.search('^\w*$', line):
                 continue
-            elif re.search('^\w*$', sourceLocation):
+            if re.search('^\w*$', sourceLocation):
                 continue
 
             sourceCount += 1
@@ -117,23 +120,50 @@ def parseFile( lines ):
             output += str(sourceCount) + "\n"
             output += "# " + sourceLocation + "\n"
             output += sourceExpression + "\n\n"
+# End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
-        elif re.search('\m4trace:tmp/all_interfaces.conf:*.', line):
-
-            line = re.sub('^.*\- ', '', line)
-            line = re.sub('dnl.*$', '', line)
-            line = re.sub('divert\(-1\)','', line)
-            line = re.sub('define\(','', line)
-            definitionCall = re.sub(',', '', line)
+        elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
+            multiLineCheck = True 
+            definitionCall = re.sub('^.*\- ', '', line)
+            definitionCall = re.sub('dnl.*$', '', definitionCall)
+            definitionCall = re.sub('divert\(-1\)','', definitionCall)
+            definitionCall = re.sub('define\(','', definitionCall)
+            definitionCall = re.sub(',', '', definitionCall)
             if re.search('^\w*$', line):
                 continue
-
+            elif re.search('popdef', line):
+                multiLineCheck = False
+                continue
+        if multiLineCheck:
+            if re.search('\.fc:.*$', line):
+                continue
+            line = re.sub('^.*\- ', '', line)
+            line = re.sub('pushdef.*$', '', line)
+            line = re.sub('popdef.*$', '', line)
+            line = re.sub('policy_m4_comment.*$', '', line)
+            if re.search('#.*$', line):
+                continue
+            if re.search('gen_require\(\`.*$', line):
+                continue
+            line = re.sub('\n', '', line)
+            line = re.sub('\t', '', line)
+            line = re.sub('^type.*$', '', line)
+            line = re.sub('^\'*\)', '', line)
+            if re.search('^\w*$', line):
+                continue
+            line = re.sub('^define\(.*$', '\n', line)
+            print(line)
             definitionCount += 1
             output += "## definition record "
             output += str(definitionCount) + "\n"
             output += "# " + definitionCall
             output += line + "\n"
-            print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
+            #print("Definition DEBUG: " + str(definitionCount) + ": " + definitionCall)
+        #elif re.search('\.spt:', line):
+
+            #line = re.sub('^.*\- ', '', line)
+            #line = re.sub
+            #print("Definition DEBUG: " + str(definitionCount) + ": " + line)
 
     return output
 
