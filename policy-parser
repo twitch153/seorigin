@@ -133,10 +133,10 @@ def parseFile( lines ):
                 continue
 
             sourceCount += 1
-            output += "## source record "
+            output += "\n## source record "
             output += str(sourceCount) + "\n"
             output += "# " + sourceLocation + "\n"
-            output += sourceExpression + "\n\n"
+            output += sourceExpression + "\n"
 # End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
         elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
