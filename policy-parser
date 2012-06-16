@@ -169,6 +169,7 @@ def parseFile( lines ):
             definition = re.sub('\t', '', definition)
             definition = re.sub('^type.*$', '', definition)
             definition = re.sub('^\'*\)', '', definition)
+            definition = re.sub('^tunable', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
