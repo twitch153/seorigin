@@ -67,12 +67,12 @@ def parse_cmd_args():
             usage()
 
 # Sanity check to make sure the parsed information is getting written to some location.
-    if outputCheck:
-        outputFile=defOutFile
-        print ("\nOutput location not specified, defaulting to: " + defOutFile)
     if inputCheck:
         inputFile=defInFile
         print ("\nInput location not specified, defaulting to: " + defInFile)
+    if outputCheck:
+        outputFile=defOutFile
+        print ("\nOutput location not specified, defaulting to: " + defOutFile)
     return( inputFile, outputFile )
 
 
@@ -84,7 +84,7 @@ def readInput( inputFile ):
     try:
         f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
     except Exception as err:
-        print("\n Error: {0}".format(err),"\n")
+        print("\n\n Error: {0}".format(err),"\n\n")
         usage()
         
     fileLines = f.readlines()
@@ -102,6 +102,8 @@ def parseFile( lines ):
     definitionCount = 0
     multiLineCheck = False
     definitionLine = False
+    gen_requireCheck = False
+    sptMultiLineCheck = False
     for line in lines:
 # Beginning of source record parsing.
         # Parse only if we have a .te line
@@ -148,6 +150,7 @@ def parseFile( lines ):
             definitionCall = re.sub(',', '', definitionCall)
             if re.search('^\w*$', definitionCall):
                 continue
+
             # Skips any popdef() lines
             if re.search('popdef', line):
                 multiLineCheck = False
@@ -155,6 +158,7 @@ def parseFile( lines ):
             # Bypasses any .fc files.
             if re.search('\.fc:.*$', line):
                 continue
+
             definition = re.sub('^.*\- ', '', line)
             definition = re.sub('divert\(-1\)','', definition)
             definition = re.sub('^.dnl*.$', '', definition)
@@ -163,13 +167,16 @@ def parseFile( lines ):
             definition = re.sub('policy_m4_comment.*$', '', definition)
             if re.search('#.*$', definition):
                 continue
+
             if re.search('gen_require\(\`.*$', definition):
-                continue
+                gen_requireCheck = True
+            elif re.search('^\t\w', definition):
+                gen_requireCheck = False
+            if gen_requireCheck:
+                definition = re.sub('.*$', '', definition)
             definition = re.sub('\n', '', definition)
             definition = re.sub('\t', '', definition)
-            definition = re.sub('^type.*$', '', definition)
-            definition = re.sub('^\'*\)', '', definition)
-            definition = re.sub('^tunable', '', definition)
+            definition = re.sub('^\)', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
@@ -187,12 +194,38 @@ def parseFile( lines ):
                 continue
 
             output += definition + '\n'
-        #elif re.search('\.spt:', line):
+        elif re.search('\.spt:', line):
+            sptMultiLineCheck = True
+            line = re.sub('^.*\- ', '', line)
+            # SDC = .spt definition call
+            SDC = re.sub('define\(', '', line)
+            SDC = re.sub(',.*$', '', SDC)
+            SDC = re.sub('\n*', '', SDC)
+            if re.search('^\)', line):
+                sptMultiLineCheck = False
+        if sptMultiLineCheck:
+            if re.search('\.fc:.*$', line):
+                continue
+            if re.search('\.m4.*$', line):
+                continue
 
-            #line = re.sub('^.*\- ', '', line)
-            #line = re.sub
-            #print("Definition DEBUG: " + str(definitionCount) + ": " + line)
-
+            if re.search('^define', line):
+            # SDL = spt Definition Line
+                SDL = True
+            else:
+                SDL = False
+            line = re.sub('.*\, ', '', line) 
+           # line = re.sub('\n', '', line)
+            sptDefinition = re.sub('^.*\, ', '', line)
+            sptDefinition = re.sub('\}\)', '}', sptDefinition)
+            sptDefinition = re.sub('^\)', '', sptDefinition)
+            sptDefinition = re.sub('\n*', '', sptDefinition)
+            sptDefinition = re.sub('\t', '', sptDefinition)
+            #if re.search('^\w*$', sptDefinition):
+            #    continue
+            if SDL:
+                print('## ' + SDC)
+            print(sptDefinition)
     return output
 
 """
@@ -202,7 +235,7 @@ def writeOut( outputFile, output ):
     try:
         parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\n\nError: {0}".format(err),"\n\n")
         usage()
 
     parsedOut.write(output)
