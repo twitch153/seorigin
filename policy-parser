@@ -234,11 +234,10 @@ def parseFile( lines ):
                 output += "\n## definition record "
                 output += str(definitionCount) + "\n"
                 output += "# " + SDC + "\n"
-            sptDefinition = re.sub('\n*', '', sptDefinition)
-            sptDefinition = re.sub('\s', '', sptDefinition)
+            sptDefinition = re.sub('^\s+', '', sptDefinition)
+            sptDefinition = re.sub('\n', '', sptDefinition)
             sptDefinition = re.sub('^define\(', '', sptDefinition)
             output += sptDefinition + '\n'
-            print(sptDefinition)
     return output
 
 """
