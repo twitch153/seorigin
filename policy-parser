@@ -200,11 +200,12 @@ def parseFile( lines ):
             # SDC = .spt definition call
             SDC = re.sub('define\(', '', line)
             SDC = re.sub(',.*$', '', SDC)
-            SDC = re.sub('\n*', '', SDC)
+            SDC = re.sub('\n', '', SDC)
             if re.search('^\)', line):
                 sptMultiLineCheck = False
         if sptMultiLineCheck:
             if re.search('\.fc:.*$', line):
+                line = re.sub('\n', '', line)
                 continue
             if re.search('\.m4.*$', line):
                 continue
@@ -214,17 +215,27 @@ def parseFile( lines ):
                 SDL = True
             else:
                 SDL = False
-            line = re.sub('.*\, ', '', line) 
-           # line = re.sub('\n', '', line)
-            sptDefinition = re.sub('^.*\, ', '', line)
-            sptDefinition = re.sub('\}\)', '}', sptDefinition)
+            sptDefinition = re.sub('\}\)', '}', line)
             sptDefinition = re.sub('^\)', '', sptDefinition)
-            sptDefinition = re.sub('\n*', '', sptDefinition)
-            sptDefinition = re.sub('\t', '', sptDefinition)
-            #if re.search('^\w*$', sptDefinition):
-            #    continue
+            sptDefinition = re.sub(SDC + '\, ', '', sptDefinition)
+            if re.search('gen_require\(\`.*$', sptDefinition):
+                gen_requireCheck = True
+            elif re.search('^\t\w', sptDefinition):
+                gen_requireCheck = False
+            if gen_requireCheck:
+               sptDefinition = re.sub('.*$', '', sptDefinition)
+            sptDefinition = re.sub('^\)', '', sptDefinition)
+            sptDefinition = re.sub('/.*$', '', sptDefinition)
             if SDL:
-                print('## ' + SDC)
+                definitionCount += 1
+                output += "## definition record "
+                output += str(definitionCount) + "\n"
+                output += "# " + SDC
+                print('# ' + SDC)
+            sptDefinition = re.sub('\n*', '', sptDefinition)
+            sptDefinition = re.sub('\t*', '', sptDefinition)
+            sptDefinition = re.sub('^define\(', '', sptDefinition)
+            output += sptDefinition + '\n'
             print(sptDefinition)
     return output
 
