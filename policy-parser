@@ -100,10 +100,12 @@ def parseFile( lines ):
     output = ''
     sourceCount = 0
     definitionCount = 0
+    oldLine = 1208845
     multiLineCheck = False
     definitionLine = False
     gen_requireCheck = False
     sptMultiLineCheck = False
+
     for line in lines:
 # Beginning of source record parsing.
         # Parse only if we have a .te line
@@ -121,24 +123,33 @@ def parseFile( lines ):
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
+            sourceExpression = re.sub('gen_tunable.*$', '', sourceExpression) # gen_tunable omitted from source records
             sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression) 
-            sourceExpression = re.sub('\->', '', sourceExpression)
+            sourceExpression = re.sub('\->.*$', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
-            sourceLocation = re.sub('\s+.*$', '', line)  
+            sourceLocation = re.sub('\s+.*$', '', line) 
+            sourceLineNum = re.sub('\w+/', '', sourceLocation) 
+            sourceLineNum = re.sub('\w+\.te:', '', sourceLineNum)
             if re.search('^\w*$', sourceExpression):       # Skip lines that are all white space
                 continue
             if re.search('^\w*$', line):
                 continue
             if re.search('^\w*$', sourceLocation):
                 continue
-
+            if re.search(sourceLineNum, sourceLocation):
+                currentLine = sourceLineNum
+                if currentLine == oldLine:
+                    continue
+                else:
+                    oldLine = currentLine     
             sourceCount += 1
             output += "\n## source record "
             output += str(sourceCount) + "\n"
             output += "# " + sourceLocation + "\n"
             output += sourceExpression + "\n"
+           
 # End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
         elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
@@ -164,6 +175,7 @@ def parseFile( lines ):
             definition = re.sub('^.dnl*.$', '', definition)
             definition = re.sub('pushdef.*$', '', definition)
             definition = re.sub('popdef.*$', '', definition)
+            definition = re.sub('gen_tunable.*$', '', definition) # gen_tunable is omitted from all_interfaces.conf
             definition = re.sub('policy_m4_comment.*$', '', definition)
             if re.search('#.*$', definition):
                 continue
