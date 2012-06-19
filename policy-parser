@@ -188,20 +188,23 @@ def parseFile( lines ):
                 definitionCount += 1
                 output += "\n## definition record "
                 output += str(definitionCount) + "\n"
-                output += "# " + definitionCall
+                output += "# " + definitionCall + "\n"
             definition = re.sub('^define\(.*$', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
             output += definition + '\n'
         elif re.search('\.spt:', line):
-            sptMultiLineCheck = True
             line = re.sub('^.*\- ', '', line)
             # SDC = .spt definition call
             SDC = re.sub('define\(', '', line)
             SDC = re.sub(',.*$', '', SDC)
             SDC = re.sub('\n', '', SDC)
-            if re.search('^\)', line):
+            if re.search('.*_pattern', SDC):
+                sptMultiLineCheck = True
+            elif re.search('.*_perms', SDC):
+                sptMultiLineCheck = True
+            else:
                 sptMultiLineCheck = False
         if sptMultiLineCheck:
             if re.search('\.fc:.*$', line):
@@ -228,12 +231,11 @@ def parseFile( lines ):
             sptDefinition = re.sub('/.*$', '', sptDefinition)
             if SDL:
                 definitionCount += 1
-                output += "## definition record "
+                output += "\n## definition record "
                 output += str(definitionCount) + "\n"
-                output += "# " + SDC
-                print('# ' + SDC)
+                output += "# " + SDC + "\n"
             sptDefinition = re.sub('\n*', '', sptDefinition)
-            sptDefinition = re.sub('\t*', '', sptDefinition)
+            sptDefinition = re.sub('\s', '', sptDefinition)
             sptDefinition = re.sub('^define\(', '', sptDefinition)
             output += sptDefinition + '\n'
             print(sptDefinition)
