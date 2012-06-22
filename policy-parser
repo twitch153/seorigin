@@ -145,10 +145,14 @@ def parseFile( lines ):
                 else:
                     oldLine = currentLine     
             sourceCount += 1
-            output += "\n## source record "
-            output += str(sourceCount) + "\n"
-            output += "# " + sourceLocation + "\n"
-            output += sourceExpression + "\n"
+            output += "\n"
+            output += "## source record "
+            output += str(sourceCount)  
+            output += "\n"
+            output += "# " + sourceLocation
+            output += "\n"
+            output += sourceExpression 
+            output += "\n"
            
 # End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
@@ -198,14 +202,18 @@ def parseFile( lines ):
                 definitionLine = False
             if definitionLine:
                 definitionCount += 1
-                output += "\n## definition record "
-                output += str(definitionCount) + "\n"
-                output += "# " + definitionCall + "\n"
+                output += "\n"
+                output += "## definition record "
+                output += str(definitionCount) 
+                output += "\n"
+                output += "# " + definitionCall 
+                output += "\n"
             definition = re.sub('^define\(.*$', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
-            output += definition + '\n'
+            output += definition 
+            output += '\n'
         elif re.search('\.spt:', line):
             line = re.sub('^.*\- ', '', line)
             # SDC = .spt definition call
@@ -243,13 +251,17 @@ def parseFile( lines ):
             sptDefinition = re.sub('/.*$', '', sptDefinition)
             if SDL:
                 definitionCount += 1
-                output += "\n## definition record "
-                output += str(definitionCount) + "\n"
-                output += "# " + SDC + "\n"
+                output += "\n"
+                output += "## definition record "
+                output += str(definitionCount) 
+                output += "\n"
+                output += "# " + SDC
+                output += "\n"
             sptDefinition = re.sub('^\s+', '', sptDefinition)
             sptDefinition = re.sub('\n', '', sptDefinition)
             sptDefinition = re.sub('^define\(', '', sptDefinition)
-            output += sptDefinition + '\n'
+            output += sptDefinition
+            output += '\n'
     return output
 
 """
