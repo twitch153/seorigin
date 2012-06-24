@@ -103,10 +103,16 @@ def parseDefinitionRecords( lines ):
             definitionCall = re.sub('# ', '', definitionCall)
             definition = re.sub('^# ', '', line)
             definition = re.sub('^\w+$', '', definition)
+            definitionRecord = [definitionCall, definition]
+            cleanDefinition = []
+            for d in definitionRecord:
+                if d == '':
+                    continue
+                cleanDefinition.append(d)
+                #print(cleanDefinition)
 
 def parseSourceRecords( lines ):
     sourceRecordCheck = False
-    sourceRecord = []
     for line in lines:
         if re.search('## source', line):
             sourceRecordCheck = True
@@ -128,8 +134,16 @@ def parseSourceRecords( lines ):
             sourceFile = re.sub('\n', '', sourceFile)
             if re.search('^\w*$', line):
                 continue
-            sourceRecord += [sourceCall, sourceCallArgs]
-    #print(sourceRecord)
+            if line == '':
+                continue
+            sourceRecord = [sourceFile, sourceLineNum, sourceCall, sourceCallArgs]
+            cleanSource = []
+            for s in sourceRecord:
+                if s == '':
+                    continue
+                cleanSource.append(s)
+                #print(cleanSource)
+
     #return sourceRecord
 
 """
