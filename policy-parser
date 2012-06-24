@@ -249,19 +249,24 @@ def parseFile( lines ):
                sptDefinition = re.sub('.*$', '', sptDefinition)
             sptDefinition = re.sub('^\)', '', sptDefinition)
             sptDefinition = re.sub('/.*$', '', sptDefinition)
+            if re.search('^\w*$', line):
+                continue
             if SDL:
                 definitionCount += 1
-                output += "\n"
                 output += "## definition record "
                 output += str(definitionCount) 
                 output += "\n"
                 output += "# " + SDC
-                output += "\n"
             sptDefinition = re.sub('^\s+', '', sptDefinition)
             sptDefinition = re.sub('\n', '', sptDefinition)
             sptDefinition = re.sub('^define\(', '', sptDefinition)
-            output += sptDefinition
-            output += '\n'
+            if re.search('^\{.*$', sptDefinition ):
+               output += '\n' 
+               output += sptDefinition
+               output += '\n\n'
+            else:
+               output += sptDefinition
+               output += '\n'
     return output
 
 """
