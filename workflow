@@ -85,9 +85,28 @@ def readInput( inputFile ):
 
     return fileLines
 
-def parseRecords( lines ):
-    sourceRecordCheck = False
+def parseDefinitionRecords( lines ):
     definitionRecordCheck = False
+    definitionCall = ''
+    definition = ''
+    for line in lines:
+        if re.search('## definition', line):
+            definitionRecordCheck = True            
+        elif re.search('\n\n', line):
+            definitionRecordCheck = False
+        if definitionRecordCheck:
+            line = re.sub('## definition record \d+', '', line)
+            line = re.sub('\n', '', line)
+            if re.search('^\w*$', line):
+                continue
+            definitionCall = re.sub('^\w.*$', '', line)
+            definitionCall = re.sub('# ', '', definitionCall)
+            definition = re.sub('^# ', '', line)
+            definition = re.sub('^\w+$', '', definition)
+
+def parseSourceRecords( lines ):
+    sourceRecordCheck = False
+    sourceRecord = []
     for line in lines:
         if re.search('## source', line):
             sourceRecordCheck = True
@@ -106,32 +125,29 @@ def parseRecords( lines ):
             sourceLineNum = re.sub('\w+/', '', sourceFile) 
             sourceLineNum = re.sub('\w+\.te:', '', sourceLineNum)
             sourceFile = re.sub(':\d+', '', sourceFile)
+            sourceFile = re.sub('\n', '', sourceFile)
             if re.search('^\w*$', line):
                 continue
-        if re.search('## definition', line):
-            definitionRecordCheck = True            
-        elif re.search('\n\n', line):
-            definitionRecordCheck = False
-        if definitionRecordCheck:
-            line = re.sub('## definition record \d+', '', line)
-            line = re.sub('\n', '', line)
-            if re.search('^\w*$', line):
-                continue
-            definitionCall = re.sub('^\w.*$', '', line)
-            definitionCall = re.sub('# ', '', definitionCall)
-            definition = re.sub('^# ', '', line)
-            definition = re.sub('^\w+$', '', definition)
+            sourceRecord += [sourceCall, sourceCallArgs]
+    #print(sourceRecord)
+    #return sourceRecord
 
 """
 writedatabase( outputFile, output) grabs parsed output, and writes necessary data to SQLite3 database
 """
-def writeDatabase( outputFile, output ):
+def writeDatabase( outputFile, source, definition ):
     try:
-        database = outputFile.cursor() # This assigns a new file to parsedOut
+        database = outputFile.cursor() # This creates a cursor object for the database.
+        # Create TB_SOURCE table
+        #database.execute("""create table TB_SOURCE
+        #(Filename, Line_Number, Call_Statement, 
+        #Call_Arguments)""")
+        # Create TB_Definition table
+        #database.execute("""create table TB_DEFINITION
+        #(Call, Definition)""")
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
-
     database.close()
 
 """
@@ -163,8 +179,10 @@ def writeOut( outputFile, output ):
 def main():
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
-    output = parseRecords( lines )
-    writeDatabase( outputFile, output )
+    definition = parseDefinitionRecords( lines )
+    source = parseSourceRecords( lines ) 
+    #writeOut('/home/twitch153/seorigin/debug.txt', output)
+    writeDatabase( outputFile, source, definition )
 
 """
 The main function is run below.
