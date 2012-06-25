@@ -85,72 +85,53 @@ def readInput( inputFile ):
 
     return fileLines
 
-def parseDefinitionRecords( lines ):
-    definitionRecordCheck = False
-    definitionCall = ''
-    definition = ''
-    for line in lines:
-        if re.search('## definition', line):
-            definitionRecordCheck = True            
-        elif re.search('\n\n', line):
-            definitionRecordCheck = False
-        if definitionRecordCheck:
-            line = re.sub('## definition record \d+', '', line)
-            line = re.sub('\n', '', line)
-            if re.search('^\w*$', line):
-                continue
-            definitionCall = re.sub('^\w.*$', '', line)
-            definitionCall = re.sub('# ', '', definitionCall)
-            definition = re.sub('^# ', '', line)
-            definition = re.sub('^\w+$', '', definition)
-            definitionRecord = [definitionCall, definition]
-            cleanDefinition = []
-            for d in definitionRecord:
-                if d == '':
-                    continue
-                cleanDefinition.append(d)
-                #print(cleanDefinition)
-
-def parseSourceRecords( lines ):
-    sourceRecordCheck = False
-    for line in lines:
-        if re.search('## source', line):
-            sourceRecordCheck = True
-        elif re.search('^\n', line):
-            sourceRecordCheck = False
-        if sourceRecordCheck:
-            line = re.sub('## source record \d+', '', line)
-            line = re.sub('\n', '', line)
-            sourceCall = re.sub('^#.*$', '', line)
-            sourceCallArgs = re.sub('^\w*', '', sourceCall)
-            sourceCall = re.sub('\(.*\)', '', sourceCall)
-            sourceFile = re.sub('^\w*', '', line)
-            sourceFile = re.sub('^# ', '', sourceFile)
-            sourceFile = re.sub('\(.*\)', '', sourceFile)
-            sourceFile = re.sub('^\s+', '', sourceFile)
-            sourceLineNum = re.sub('\w+/', '', sourceFile) 
-            sourceLineNum = re.sub('\w+\.te:', '', sourceLineNum)
-            sourceFile = re.sub(':\d+', '', sourceFile)
-            sourceFile = re.sub('\n', '', sourceFile)
-            if re.search('^\w*$', line):
-                continue
-            if line == '':
-                continue
-            sourceRecord = [sourceFile, sourceLineNum, sourceCall, sourceCallArgs]
-            cleanSource = []
-            for s in sourceRecord:
-                if s == '':
-                    continue
-                cleanSource.append(s)
-                #print(cleanSource)
-
-    #return sourceRecord
-
 """
 writedatabase( outputFile, output) grabs parsed output, and writes necessary data to SQLite3 database
 """
-def writeDatabase( outputFile, source, definition ):
+def writeDatabase( outputFile, lines ):
     try:
+        cleanSource = []
+        cleanDefine = []
+        defineCheck = False
+        sourceCheck = False
+        for line in lines:
+            #line = re.sub('## .*$', '', line) Removes the ## <record type> record from parsed output
+            if re.search('^## definition record \d+', line):
+                defineCheck = True
+            elif re.search('^## source ', line):
+                sourceCheck = True
+            elif re.search('^\n', line):
+                sourceCheck = False
+                defineCheck = False
+
+            if sourceCheck: 
+                line = re.sub('^# ', '', line)
+                if line == '\n':
+                    continue
+                line = re.sub('\n', '', line)
+                cleanSource.append(line)
+
+            if defineCheck:
+                line = re.sub('^# ', '', line)
+                if line == '\n':
+                    continue
+                line = re.sub('\n', '', line)
+                cleanDefine.append(line)       
+
+        sourceStanza = []
+        for line in cleanSource:
+            if re.search('^## ', line):
+                print(sourceStanza)
+                sourceStanza = [] 
+            sourceStanza.append(line)
+
+        defineStanza = []
+        for line in cleanDefine:
+            if re.search('^## ', line):
+                #print(defineStanza)
+                defineStanza = [] 
+            defineStanza.append(line)
+
         database = outputFile.cursor() # This creates a cursor object for the database.
         # Create TB_SOURCE table
         #database.execute("""create table TB_SOURCE
@@ -162,6 +143,7 @@ def writeDatabase( outputFile, source, definition ):
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
+
     database.close()
 
 """
@@ -193,10 +175,8 @@ def writeOut( outputFile, output ):
 def main():
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
-    definition = parseDefinitionRecords( lines )
-    source = parseSourceRecords( lines ) 
     #writeOut('/home/twitch153/seorigin/debug.txt', output)
-    writeDatabase( outputFile, source, definition )
+    writeDatabase( outputFile, lines )
 
 """
 The main function is run below.
