@@ -212,7 +212,6 @@ def parseFile( lines ):
                 output += str(definitionCount) 
                 output += "\n"
                 output += "# " + definitionCall 
-                output += "\n"
             definition = re.sub('^define\(.*$', '', definition)
             if re.search('^\w*$', definition):
                 continue
