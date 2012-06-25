@@ -128,6 +128,8 @@ def parseFile( lines ):
             sourceExpression = re.sub('\->.*$', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
+            sourceCall = re.sub('\(.*\)$', '', sourceExpression)
+            sourceCallArgs = re.sub('^.*\(', '(', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
             sourceLocation = re.sub('\s+.*$', '', line)
             sourceLineNum = re.sub('\s+.*$', '', line)
@@ -146,7 +148,7 @@ def parseFile( lines ):
                 else:
                     oldLine = currentLine   
             sourceLocation = re.sub(':\d+', '', sourceLocation)   
-
+            print(sourceCallArgs)
             sourceCount += 1
             output += "\n"
             output += "## source record "
@@ -156,7 +158,9 @@ def parseFile( lines ):
             output += "\n"
             output += "# line: " + sourceLineNum
             output += "\n"
-            output += sourceExpression 
+            output += sourceCall
+            output += "\n"
+            output += sourceCallArgs
             output += "\n"
            
 # End of the source record parsing. Beginning of the definition record parsing.
@@ -243,6 +247,7 @@ def parseFile( lines ):
             else:
                 SDL = False
             sptDefinition = re.sub('\}\)', '}', line)
+            sptDefinition = re.sub(' \)$', '', sptDefinition)
             sptDefinition = re.sub('^\)', '', sptDefinition)
             sptDefinition = re.sub(SDC + '\, ', '', sptDefinition)
             if re.search('gen_require\(\`.*$', sptDefinition):
