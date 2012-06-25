@@ -129,8 +129,9 @@ def parseFile( lines ):
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
-            sourceLocation = re.sub('\s+.*$', '', line) 
-            sourceLineNum = re.sub('\w+/', '', sourceLocation) 
+            sourceLocation = re.sub('\s+.*$', '', line)
+            sourceLineNum = re.sub('\s+.*$', '', line)
+            sourceLineNum = re.sub('\w+/', '', sourceLineNum) 
             sourceLineNum = re.sub('\w+\.te:', '', sourceLineNum)
             if re.search('^\w*$', sourceExpression):       # Skip lines that are all white space
                 continue
@@ -143,13 +144,17 @@ def parseFile( lines ):
                 if currentLine == oldLine:
                     continue
                 else:
-                    oldLine = currentLine     
+                    oldLine = currentLine   
+            sourceLocation = re.sub(':\d+', '', sourceLocation)   
+
             sourceCount += 1
             output += "\n"
             output += "## source record "
             output += str(sourceCount)  
             output += "\n"
             output += "# " + sourceLocation
+            output += "\n"
+            output += "# line: " + sourceLineNum
             output += "\n"
             output += sourceExpression 
             output += "\n"
@@ -253,6 +258,7 @@ def parseFile( lines ):
                 continue
             if SDL:
                 definitionCount += 1
+                output += '\n'
                 output += "## definition record "
                 output += str(definitionCount) 
                 output += "\n"
