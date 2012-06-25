@@ -146,9 +146,8 @@ def parseFile( lines ):
                 if currentLine == oldLine:
                     continue
                 else:
-                    oldLine = currentLine   
-            sourceLocation = re.sub(':\d+', '', sourceLocation)   
-            print(sourceCallArgs)
+                    oldLine = currentLine
+            sourceLocation = re.sub(':\d+', '', sourceLocation)
             sourceCount += 1
             output += "\n"
             output += "## source record "
@@ -205,7 +204,7 @@ def parseFile( lines ):
             if re.search('^\w*$', definition):
                 continue
 
-            if re.search('^define', definition):     
+            if re.search('^define', definition):
                 definitionLine = True
             else:
                 definitionLine = False
@@ -213,14 +212,14 @@ def parseFile( lines ):
                 definitionCount += 1
                 output += "\n"
                 output += "## definition record "
-                output += str(definitionCount) 
+                output += str(definitionCount)
                 output += "\n"
-                output += "# " + definitionCall 
+                output += "# " + definitionCall
             definition = re.sub('^define\(.*$', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
-            output += definition 
+            output += definition
             output += '\n'
         elif re.search('\.spt:', line):
             line = re.sub('^.*\- ', '', line)
@@ -292,7 +291,7 @@ def writeOut( outputFile, output ):
     parsedOut.write(output)
     parsedOut.close()
 
-""" 
+"""
 main(), this is where the magic happens.
 """
 def main():
