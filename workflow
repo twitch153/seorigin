@@ -33,7 +33,7 @@ import sys, getopt, re, os, sqlite3
 """
 
 def usage():
-	print("Proper usage:\nworkflow -i(--input) [file to parse] -o(--output) [database location to ouput to]")
+	print("Proper usage:\nworkflow -i(--input) [file to parse] -o(--output) [database location]")
 
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
@@ -55,14 +55,14 @@ def parse_cmd_args():
             inputFile=p
             inputCheck = False
         elif o in ['-o', '--output']:
-            outputFile = sqlite3.connect(os.path.join(os.environ["PWD"], p))
+            outputFile = sqlite3.connect(p)
             outputCheck=False
         elif o in ['-h', '--help']:
             usage()
 
 # Sanity check to make sure the parsed information is getting written to some location.
     if outputCheck:
-        outputFile=sqlite3.connect(defOutFile)
+        outputFile=sqlite3.connect(defOutFile) # Creates a connection to the sqlite3 database
         print ("\nOutput location not specified, defaulting to: " + defOutFile)
     if inputCheck:
         inputFile=defInFile
@@ -90,12 +90,21 @@ writedatabase( outputFile, output) grabs parsed output, and writes necessary dat
 """
 def writeDatabase( outputFile, lines ):
     try:
+        database = outputFile.cursor()
+        # Create TB_SOURCE table
+        database.execute('''create table if not exists tb_source
+        (Filename text, Line_Number text, Call_Statement text, 
+        Call_Arguments text)''')
+        # Create TB_Definition table
+        database.execute('''create table if not exists tb_definition
+        (Call text, Definition real)''')
+
         cleanSource = []
         cleanDefine = []
         defineCheck = False
         sourceCheck = False
         for line in lines:
-            #line = re.sub('## .*$', '', line) Removes the ## <record type> record from parsed output
+            #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from parsed output
             if re.search('^## definition record \d+', line):
                 defineCheck = True
             elif re.search('^## source ', line):
@@ -108,6 +117,7 @@ def writeDatabase( outputFile, lines ):
                 line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
+
                 line = re.sub('\n', '', line)
                 cleanSource.append(line)
 
@@ -115,35 +125,44 @@ def writeDatabase( outputFile, lines ):
                 line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
+
                 line = re.sub('\n', '', line)
                 cleanDefine.append(line)       
+        #sourceStanza = []
+        sourceStanza = [cleanSource[0], cleanSource[1], cleanSource[2], cleanSource[3], cleanSource[4], cleanSource[5]]
+        for source in cleanSource:
+            if re.search('^## ', source):
+                sourceFile = sourceStanza[1]
+                sourceLine = sourceStanza[2]
+                sourceCall = sourceStanza[3]
+                sourceCallArgs = sourceStanza[4]
+                sourceRecord = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
+                database.execute("""insert into tb_source values (?,?,?,?)""", sourceRecord)
+                sourceStanza = []            
 
-        sourceStanza = []
-        for line in cleanSource:
-            if re.search('^## ', line):
-                print(sourceStanza)
-                sourceStanza = [] 
-            sourceStanza.append(line)
+            sourceStanza.append(source)
+        # The final source record is not listed in the for-loop above so we add it in after.
+        sourceFile = sourceStanza[1]
+        sourceLine = sourceStanza[2]
+        sourceCall = sourceStanza[3]
+        sourceCallArgs = sourceStanza[4]
+        source = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
+        database.execute("""insert into tb_source values (?,?,?,?)""", source)
 
-        defineStanza = []
-        for line in cleanDefine:
-            if re.search('^## ', line):
-                #print(defineStanza)
+        defineStanza = [0, 1, 2]
+        for define in cleanDefine:
+            if re.search('^## ', define):
+                definitionCall = defineStanza[1]
+                definition = defineStanza[2:]
+                define = [definitionCall, definition]
+               #database.execute("""insert into tb_definition values (?,?)""", define)
                 defineStanza = [] 
-            defineStanza.append(line)
+            defineStanza.append(define)
 
-        database = outputFile.cursor() # This creates a cursor object for the database.
-        # Create TB_SOURCE table
-        #database.execute("""create table TB_SOURCE
-        #(Filename, Line_Number, Call_Statement, 
-        #Call_Arguments)""")
-        # Create TB_Definition table
-        #database.execute("""create table TB_DEFINITION
-        #(Call, Definition)""")
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
-
+    outputFile.commit()
     database.close()
 
 """
