@@ -94,10 +94,11 @@ def writeDatabase( outputFile, lines ):
         # Create TB_SOURCE table
         database.execute('''create table if not exists tb_source
         (Filename text, Line_Number text, Call_Statement text, 
-        Call_Arguments text)''')
+        Call_Arguments text, primary key( Filename, Line_Number ))''')
         # Create TB_Definition table
         database.execute('''create table if not exists tb_definition
-        (Call text, Definition real)''')
+        (Call text, Definition text)''')
+        outputFile.commit()
 
         cleanSource = []
         cleanDefine = []
@@ -113,7 +114,7 @@ def writeDatabase( outputFile, lines ):
                 sourceCheck = False
                 defineCheck = False
 
-            if sourceCheck: 
+            if sourceCheck:
                 line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
@@ -127,9 +128,9 @@ def writeDatabase( outputFile, lines ):
                     continue
 
                 line = re.sub('\n', '', line)
-                cleanDefine.append(line)       
-        #sourceStanza = []
-        sourceStanza = [cleanSource[0], cleanSource[1], cleanSource[2], cleanSource[3], cleanSource[4], cleanSource[5]]
+                cleanDefine.append(line)
+ 
+        sourceStanza = ['-', '-', '-', '-', '-']
         for source in cleanSource:
             if re.search('^## ', source):
                 sourceFile = sourceStanza[1]
@@ -137,31 +138,44 @@ def writeDatabase( outputFile, lines ):
                 sourceCall = sourceStanza[3]
                 sourceCallArgs = sourceStanza[4]
                 sourceRecord = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
-                database.execute("""insert into tb_source values (?,?,?,?)""", sourceRecord)
+                for r in sourceRecord:
+                    if not re.search('^\-', r):
+                        try:
+                            database.execute("""insert into tb_source 
+                            values (?,?,?,?)""", sourceRecord)
+                        # Attempts to find multiple entries and skip them prior to 
+                        # inserting them into tb_source.
+                        except sqlite3.IntegrityError:
+                            pass
+
                 sourceStanza = []            
 
             sourceStanza.append(source)
-        # The final source record is not listed in the for-loop above so we add it in after.
+            # The final source record is not listed in the for-loop above so we add it in after.
         sourceFile = sourceStanza[1]
         sourceLine = sourceStanza[2]
         sourceCall = sourceStanza[3]
         sourceCallArgs = sourceStanza[4]
         source = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
-        database.execute("""insert into tb_source values (?,?,?,?)""", source)
+        try:
+                database.execute("""insert into tb_source values (?,?,?,?)""", source)
+        except sqlite3.IntegrityError:
+            pass
 
-        defineStanza = [0, 1, 2]
+        defineStanza = ['', '', '']
         for define in cleanDefine:
             if re.search('^## ', define):
                 definitionCall = defineStanza[1]
                 definition = defineStanza[2:]
                 define = [definitionCall, definition]
-               #database.execute("""insert into tb_definition values (?,?)""", define)
+                #database.execute("""insert into tb_definition values (?,?)""", define)
                 defineStanza = [] 
             defineStanza.append(define)
 
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
+
     outputFile.commit()
     database.close()
 
