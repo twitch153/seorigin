@@ -129,7 +129,9 @@ def writeDatabase( outputFile, lines ):
 
                 line = re.sub('\n', '', line)
                 cleanDefine.append(line)
- 
+
+        # Makes the first defineStanza some impossible values that wouldn't be in the 
+        #beginning of a source record.
         sourceStanza = ['-', '-', '-', '-', '-']
         for source in cleanSource:
             if re.search('^## ', source):
@@ -141,17 +143,17 @@ def writeDatabase( outputFile, lines ):
                 for r in sourceRecord:
                     if not re.search('^\-', r):
                         try:
-                            database.execute("""insert into tb_source 
+                            database.execute("""insert into tb_source
                             values (?,?,?,?)""", sourceRecord)
-                        # Attempts to find multiple entries and skip them prior to 
+                        # Attempts to find multiple entries and skip them prior to
                         # inserting them into tb_source.
                         except sqlite3.IntegrityError:
                             pass
 
-                sourceStanza = []            
+                sourceStanza = []
 
             sourceStanza.append(source)
-            # The final source record is not listed in the for-loop above so we add it in after.
+        # The final source record is not listed in the for-loop above so we add it in after.
         sourceFile = sourceStanza[1]
         sourceLine = sourceStanza[2]
         sourceCall = sourceStanza[3]
@@ -162,15 +164,37 @@ def writeDatabase( outputFile, lines ):
         except sqlite3.IntegrityError:
             pass
 
-        defineStanza = ['', '', '']
+        # Makes the first defineStanza some impossible values. 
+        defineStanza = ['@', '@', '@']
         for define in cleanDefine:
             if re.search('^## ', define):
                 definitionCall = defineStanza[1]
-                definition = defineStanza[2:]
-                define = [definitionCall, definition]
-                #database.execute("""insert into tb_definition values (?,?)""", define)
-                defineStanza = [] 
+                definitionList = defineStanza[2:]
+                for definition in definitionList:
+                    define = [definitionCall, definition]
+                    for i in define:
+                        if not re.search('^\@', i):
+                            try:
+                                #pass # stub for now till we get proper insertion of definition record
+                                database.execute("""insert into tb_definition values (?,?)""", define)
+                        # Attempts to find multiple entries and skip them prior to
+                        # inserting them into tb_definition. Still need to properly insert definition first.
+                            except sqlite3.IntegrityError:
+                                pass
+
+                    defineStanza = [] 
             defineStanza.append(define)
+
+        # The final source record is not listed in the for-loop above so we add it in after.
+        definitionCall = defineStanza[1]
+        definitionList = defineStanza[2:]
+        for definition in definitionList:
+            define = [definitionCall, definition]
+            try:
+                database.execute("""insert into tb_definition values (?,?)""", define)
+            except sqlite3.IntegrityError:
+                pass
+
 
     except Exception as err:
         print("Error: {0}".format(err),"\n")
