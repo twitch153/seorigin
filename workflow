@@ -84,16 +84,30 @@ def readInput( inputFile ):
     f.close()
 
     return fileLines
+
+def createTables( outputFile ):
+    try:
+        database = outputFile.cursor()
+        # Create TB_Definition table
+        database.execute('''create table if not exists tb_definition
+        (Call text, Definition text)''')
+        # Create TB_SOURCE table
+        database.execute('''create table if not exists tb_source
+        (Filename text, Line_Number text, Call_Statement text, 
+        Call_Arguments text, primary key( Filename, Line_Number ))''')
+        outputFile.commit()
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
+        
 """
 writeDefineDB( outputFile, output) grabs parsed output, and writes definition record data to SQLite3 database (output).
 """
 def writeDefineDB( outputFile, lines ):
     try:
         database = outputFile.cursor()
-        # Create TB_Definition table
-        database.execute('''create table if not exists tb_definition
-        (Call text, Definition text)''')
-        outputFile.commit()
         cleanDefine = []
         defineCheck = False
         for line in lines:
@@ -116,14 +130,14 @@ def writeDefineDB( outputFile, lines ):
                 definitionList = defineStanza[2:]
                 for definition in definitionList:
                     define = [definitionCall, definition]
-                    for i in define:
-                        if not re.search('^\@', i):
-                            try:
-                                database.execute("""insert into tb_definition values (?,?)""", define)
+                    #for i in define:
+                    if not re.search('^\@', definition):
+                        try:
+                            database.execute("""insert into tb_definition values (?,?)""", define)
                         # Attempts to find multiple entries and skip them prior to
                         # inserting them into tb_definition. Still need to properly insert definition first.
-                            except sqlite3.IntegrityError:
-                                pass
+                        except sqlite3.IntegrityError:
+                            pass
                     defineStanza = [] 
             defineStanza.append(define)
         # The final source record is not listed in the for-loop above so we add it in after.
@@ -146,11 +160,6 @@ writeSourceDB( outputFile, output) grabs parsed output, and writes source record
 def writeSourceDB( outputFile, lines ):
     try:
         database = outputFile.cursor()
-        # Create TB_SOURCE table
-        database.execute('''create table if not exists tb_source
-        (Filename text, Line_Number text, Call_Statement text, 
-        Call_Arguments text, primary key( Filename, Line_Number ))''')
-        outputFile.commit()
         cleanSource = []
         sourceCheck = False
         for line in lines:
@@ -168,6 +177,7 @@ def writeSourceDB( outputFile, lines ):
         sourceStanza = ['-', '-', '-', '-', '-']
         for source in cleanSource:
             if re.search('^## ', source):
+                sourceID = re.sub('^## \w* \w* ', '', source)
                 sourceFile = sourceStanza[1]
                 sourceLine = sourceStanza[2]
                 sourceCall = sourceStanza[3]
@@ -228,6 +238,7 @@ def writeOut( outputFile, output ):
 def main():
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
+    createTables( outputFile )
     #writeOut('/home/twitch153/seorigin/debug.txt', output)
     writeDefineDB( outputFile, lines )
     writeSourceDB( outputFile, lines )
