@@ -164,7 +164,7 @@ def parseFile( lines ):
            
 # End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
-        elif re.search('\m4trace:tmp/all_interfaces.conf:', line):
+        if re.search('\m4trace:tmp/all_interfaces.conf:', line):
             multiLineCheck = True 
             definitionCall = re.sub('^.*\- ', '', line)
             definitionCall = re.sub('dnl.*$', '', definitionCall)
@@ -221,7 +221,7 @@ def parseFile( lines ):
 
             output += definition
             output += '\n'
-        elif re.search('\.spt:', line):
+        if re.search('\.spt:', line):
             line = re.sub('^.*\- ', '', line)
             # SDC = .spt definition call
             SDC = re.sub('define\(', '', line)

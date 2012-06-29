@@ -93,8 +93,11 @@ def createTables( outputFile ):
         (Call text, Definition text)''')
         # Create TB_SOURCE table
         database.execute('''create table if not exists tb_source
-        (Filename text, Line_Number text, Call_Statement text, 
-        Call_Arguments text, primary key( Filename, Line_Number ))''')
+        (FileID Integer primary key AUTOINCREMENT, Line_Number text, Call_Statement text, 
+        Call_Arguments text)''') 
+        #,primary key(Line_Number ))''')
+        database.execute('''create table if not exists tb_files
+        (FileID Integer primary key AUTOINCREMENT, Filename text)''')
         outputFile.commit()
     except Exception as err:
         print("Error: {0}".format(err),"\n")
@@ -130,25 +133,16 @@ def writeDefineDB( outputFile, lines ):
                 definitionList = defineStanza[2:]
                 for definition in definitionList:
                     define = [definitionCall, definition]
-                    #for i in define:
                     if not re.search('^\@', definition):
-                        try:
-                            database.execute("""insert into tb_definition values (?,?)""", define)
-                        # Attempts to find multiple entries and skip them prior to
-                        # inserting them into tb_definition. Still need to properly insert definition first.
-                        except sqlite3.IntegrityError:
-                            pass
-                    defineStanza = [] 
+                        database.execute("""insert into tb_definition values (?,?)""", define)
+                defineStanza = [] 
             defineStanza.append(define)
         # The final source record is not listed in the for-loop above so we add it in after.
         definitionCall = defineStanza[1]
         definitionList = defineStanza[2:]
         for definition in definitionList:
             define = [definitionCall, definition]
-            try:
-                database.execute("""insert into tb_definition values (?,?)""", define)
-            except sqlite3.IntegrityError:
-                pass
+            database.execute("""insert into tb_definition values (?,?)""", define)
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
@@ -177,21 +171,18 @@ def writeSourceDB( outputFile, lines ):
         sourceStanza = ['-', '-', '-', '-', '-']
         for source in cleanSource:
             if re.search('^## ', source):
-                sourceID = re.sub('^## \w* \w* ', '', source)
                 sourceFile = sourceStanza[1]
                 sourceLine = sourceStanza[2]
                 sourceCall = sourceStanza[3]
                 sourceCallArgs = sourceStanza[4]
-                sourceRecord = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
-                for r in sourceRecord:
-                    if not re.search('^\-', r):
-                        try:
-                            database.execute("""insert into tb_source
-                            values (?,?,?,?)""", sourceRecord)
-                        # Attempts to find multiple entries and skip them prior to
-                        # inserting them into tb_source.
-                        except sqlite3.IntegrityError:
-                            pass
+                sourceRecord = [sourceLine, sourceCall, sourceCallArgs]
+                File = (sourceFile, )
+                for F in File:
+                    if not re.search('^\-', F):
+                        database.execute("""insert into tb_files values (NULL, ?)""", File)
+                if not re.search('^\-', sourceLine):
+                    database.execute("""insert into tb_source
+                    values (NULL, ?, ?, ?)""", sourceRecord)
                 sourceStanza = []
             sourceStanza.append(source)
         # The final source record is not listed in the for-loop above so we add it in after.
@@ -199,11 +190,10 @@ def writeSourceDB( outputFile, lines ):
         sourceLine = sourceStanza[2]
         sourceCall = sourceStanza[3]
         sourceCallArgs = sourceStanza[4]
-        source = [sourceFile, sourceLine, sourceCall, sourceCallArgs]
-        try:
-                database.execute("""insert into tb_source values (?,?,?,?)""", source)
-        except sqlite3.IntegrityError:
-            pass
+        File = (sourceFile, )
+        source = [sourceLine, sourceCall, sourceCallArgs]
+        database.execute("""insert into tb_files values (NULL, ?)""", File)
+        database.execute("""insert into tb_source values (NULL, ?,?,?)""", source)
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
