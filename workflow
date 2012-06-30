@@ -61,12 +61,12 @@ def parse_cmd_args():
             usage()
 
 # Sanity check to make sure the parsed information is getting written to some location.
-    if outputCheck:
-        outputFile=sqlite3.connect(defOutFile) # Creates a connection to the sqlite3 database
-        print ("\nOutput location not specified, defaulting to: " + defOutFile)
     if inputCheck:
         inputFile=defInFile
         print ("\nInput location not specified, defaulting to: " + defInFile)
+    if outputCheck:
+        outputFile=sqlite3.connect(defOutFile) # Creates a connection to the sqlite3 database
+        print ("\nOutput location not specified, defaulting to: " + defOutFile)
     return( inputFile, outputFile )
 	
 """
@@ -226,6 +226,7 @@ def writeOut( outputFile, output ):
     parsedOut.close()
 
 def main():
+    print("Workflow component v1.1.1: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     createTables( outputFile )
