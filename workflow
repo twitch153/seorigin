@@ -84,7 +84,9 @@ def readInput( inputFile ):
     f.close()
 
     return fileLines
-
+"""
+createTables( outputFile ) creates the necessary tables for the SQLite3 database
+"""
 def createTables( outputFile ):
     try:
         database = outputFile.cursor()
@@ -104,36 +106,76 @@ def createTables( outputFile ):
         usage()
     outputFile.commit()
     database.close()
-        
 """
-writeDefineDB( outputFile, output) grabs parsed output, and writes definition record data to SQLite3 database (output).
+cleanDefine( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
+the specified record type.
 """
-def writeDefineDB( outputFile, lines ):
+def cleanDefine( lines ):
     try:
-        database = outputFile.cursor()
         cleanDefine = []
         defineCheck = False
         for line in lines:
             #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from parsed output
-            if re.search('^## definition record \d+', line):
+            if re.search('^## definition', line):
                 defineCheck = True
             elif re.search('^\n', line):
-                defineCheck = False
+                    defineCheck = False
             if defineCheck:
                 line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
                 line = re.sub('\n', '', line)
                 cleanDefine.append(line)
+        return cleanDefine
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+        sys.exit() 
+"""
+cleanDefine( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
+the specified record type.
+"""
+def cleanSource( lines ):
+    try:
+        cleanSource = []
+        sourceCheck = False
+        for line in lines:
+            #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from parsed output
+            if re.search('^## source', line):
+                sourceCheck = True
+            elif re.search('^\n', line):
+                sourceCheck = False
+            if sourceCheck:
+                line = re.sub('^# ', '', line)
+                if line == '\n':
+                    continue
+                line = re.sub('\n', '', line)
+                cleanSource.append(line)
+        return cleanSource
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+        sys.exit() 
+"""
+writeDefineDB( outputFile, output) grabs parsed output, and writes definition record data to SQLite3 database (output).
+"""
+def writeDefineDB( outputFile, lines ):
+    try:
+        skipCheck = False
+        database = outputFile.cursor()
+        clean_define = cleanDefine( lines )
         # Makes the first defineStanza some impossible values. 
         defineStanza = ['@', '@', '@']
-        for define in cleanDefine:
+        for define in clean_define:
             if re.search('^## ', define):
                 definitionCall = defineStanza[1]
                 definitionList = defineStanza[2:]
                 for definition in definitionList:
                     define = [definitionCall, definition]
-                    if not re.search('^\@', definition):
+                    for d in define:
+                        if re.search('^@', d):
+                            skipCheck = True
+                    if skipCheck:
                         database.execute("""insert into tb_definition values (?,?)""", define)
                 defineStanza = [] 
             defineStanza.append(define)
@@ -154,22 +196,10 @@ writeSourceDB( outputFile, output) grabs parsed output, and writes source record
 def writeSourceDB( outputFile, lines ):
     try:
         database = outputFile.cursor()
-        cleanSource = []
-        sourceCheck = False
-        for line in lines:
-            if re.search('^## source ', line):
-                sourceCheck = True
-            elif re.search('^\n', line):
-                sourceCheck = False
-            if sourceCheck:
-                line = re.sub('^# ', '', line)
-                if line == '\n':
-                    continue
-                line = re.sub('\n', '', line)
-                cleanSource.append(line)
+        clean_source = cleanSource( lines )
         # Makes the first defineStanza some impossible values that wouldn't be in the beginning of a source record.
         sourceStanza = ['-', '-', '-', '-', '-']
-        for source in cleanSource:
+        for source in clean_source:
             if re.search('^## ', source):
                 sourceFile = sourceStanza[1]
                 sourceLine = sourceStanza[2]
