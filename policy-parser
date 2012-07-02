@@ -117,7 +117,7 @@ def parseFile( lines ):
             # Take line and break the parts after the file location into the source expression
             sourceExpression = re.sub('^.*\d+ ', '',line)
             sourceExpression = re.sub('\s', '', sourceExpression) # Remove all white space in the line
-            sourceExpression = re.sub('policy.*$', '', sourceExpression)
+            sourceExpression = re.sub('^policy.*$', '', sourceExpression)
             sourceExpression = re.sub('[ififn]def.*$', '', sourceExpression)
             sourceExpression = re.sub('ifelse.*$', '', sourceExpression)
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
