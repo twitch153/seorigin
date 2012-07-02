@@ -47,7 +47,7 @@ def parse_cmd_args():
     inputCheck = True    # Boolean check to see if input location has been set.
     outputCheck = True   # Boolean check to see if output location has been set.
     defInFile = os.path.join(os.environ["PWD"], 'parsed_output.txt') # Default input location.
-    defOutFile = os.path.join(os.environ["PWD"], 'record_database') # Default output location.
+    defOutFile = os.path.join(os.environ["PWD"], 'seorigin') # Default output location.
 
     #Set up arguement flags for script execution.
     for o, p in opts:
@@ -84,31 +84,60 @@ def readInput( inputFile ):
     f.close()
 
     return fileLines
+
+"""
+getStatementType( lines ) read through the lines of the input and searches for each statement type and assigns
+a certain value to each statement and then returns the value of the statement.
+"""
+def getStatementType( lines ):
+    for line in lines:
+        statementValue = 99999999
+        if re.search('^allow', line):
+            statementValue = 0
+        elif re.search('^corenet_', line):
+            statementValue = 1
+        elif re.search('^typeattribute', line):
+            statementValue = 2
+        elif re.search('^dontaudit', line):
+            statementValue = 3
+        elif re.search('^attribute', line):
+            statementValue = 4
+        elif re.search('^relabel_', line):
+            statementValue = 5
+        elif re.search('^domain_', line):
+            statementValue = 6
+        elif re.search('^manage', line):
+            statementValue = 7
+        elif re.search('^type_', line):
+            statementValue = 8
+    return statementValue
+
 """
 createTables( outputFile ) creates the necessary tables for the SQLite3 database
 """
 def createTables( outputFile ):
     try:
-        database = outputFile.cursor()
-        # Create TB_Definition table
-        database.execute('''create table if not exists tb_definition
-        (Call text, Definition text)''')
-        # Create TB_SOURCE table
-        database.execute('''create table if not exists tb_source
-        (FileID Integer primary key AUTOINCREMENT, Line_Number text, Call_Statement text, 
-        Call_Arguments text)''') 
-        #,primary key(Line_Number ))''')
+        database = outputFile.cursor()    
         database.execute('''create table if not exists tb_files
         (FileID Integer primary key AUTOINCREMENT, Filename text)''')
+        database.execute('''create table if not exists tb_files
+        (FileID Integer primary key AUTOINCREMENT, Filename text)''')
+        database.execute('''create table if not exists tb_definitionNames 
+        (DefinitionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, DefinitionName 
+        Text NOT NULL)''')    
+        database.execute('''create table if not exists tb_source
+        (FileID Integer primary key AUTOINCREMENT, Line_Number text, Call_Statement text,
+        Call_Arguments text)''')
         outputFile.commit()
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
+
 """
 cleanDefine( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
-the specified record type.
+the definition records and returns them in a clean array.
 """
 def cleanDefine( lines ):
     try:
@@ -131,16 +160,18 @@ def cleanDefine( lines ):
         print("Error: {0}".format(err),"\n")
         usage()
         sys.exit() 
+
 """
-cleanDefine( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
-the specified record type.
+cleanSource( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
+source records and returns them in a clean array.
 """
 def cleanSource( lines ):
     try:
         cleanSource = []
         sourceCheck = False
         for line in lines:
-            #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from parsed output
+            #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from input.
+            line = re.sub('# line: ', '', line)# Removes "# line: " from input.
             if re.search('^## source', line):
                 sourceCheck = True
             elif re.search('^\n', line):
@@ -155,7 +186,67 @@ def cleanSource( lines ):
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
-        sys.exit() 
+        sys.exit()
+
+"""
+writeTB_FILES() writes specific information from the input file to tb_files in the seorigin db.
+"""
+def writeTB_FILES( outputFile, lines ):
+    try:
+        database = outputFile.cursor()
+        # Takes the lines from the input and "cleans" them to be read in for DB instertion.
+        clean_source = cleanSource( lines )
+        # Makes the first defineStanza some impossible values that wouldn't be in the beginning of a source record.
+        sourceStanza = ['-', '-', '-', '-', '-']
+        for source in clean_source:
+            if re.search('^## ', source):
+                sourceFile = sourceStanza[1]
+                File = (sourceFile, )
+                for F in File:
+                    if not re.search('^\-', F):
+                        database.execute("""insert into tb_files values (NULL, ?)""", File)
+                sourceStanza = []
+            sourceStanza.append(source)
+        # The final source record is not listed in the for-loop above so we add it in after.
+        sourceFile = sourceStanza[1]
+        File = (sourceFile, )
+        database.execute("""insert into tb_files values (NULL, ?)""", File)
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
+
+"""
+writeTB_DEFINITIONNAME() writes specific information from the input file to tb_definitionNames in the seorigin db.
+"""
+def writeTB_DEFINITIONNAMES( outputFile, lines ):
+    try:
+        skipCheck = False
+        database = outputFile.cursor()
+        # Takes the lines from the input and "cleans" them to be read in for DB instertion.
+        clean_define = cleanDefine( lines )
+        # Makes the first defineStanza some impossible values. 
+        defineStanza = ['@', '@', '@']
+        for define in clean_define:
+            if re.search('^## ', define):
+                definitionCall = defineStanza[1]
+                defName = (definitionCall, )
+                for Name in defName:
+                    if not re.search('^@', Name):
+                        database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+                defineStanza = [] 
+            defineStanza.append(define)
+        # The final source record is not listed in the for-loop above so we add it in after.
+        definitionCall = defineStanza[1]
+        defName = (definitionCall, )
+        database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
+
 """
 writeDefineDB( outputFile, output) grabs parsed output, and writes definition record data to SQLite3 database (output).
 """
@@ -175,8 +266,11 @@ def writeDefineDB( outputFile, lines ):
                     for d in define:
                         if re.search('^@', d):
                             skipCheck = True
-                    if skipCheck:
-                        database.execute("""insert into tb_definition values (?,?)""", define)
+                        else:
+                            skipCheck = False
+                    if not skipCheck:
+                        pass
+                        #database.execute("""insert into tb_definition values (?,?)""", define)
                 defineStanza = [] 
             defineStanza.append(define)
         # The final source record is not listed in the for-loop above so we add it in after.
@@ -184,12 +278,13 @@ def writeDefineDB( outputFile, lines ):
         definitionList = defineStanza[2:]
         for definition in definitionList:
             define = [definitionCall, definition]
-            database.execute("""insert into tb_definition values (?,?)""", define)
+            #database.execute("""insert into tb_definition values (?,?)""", define)
     except Exception as err:
         print("Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
+
 """
 writeSourceDB( outputFile, output) grabs parsed output, and writes source record data to SQLite3 database (output).
 """
@@ -229,6 +324,7 @@ def writeSourceDB( outputFile, lines ):
         usage()
     outputFile.commit()
     database.close()
+
 """
 writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
 for debugging purposes. 
@@ -244,6 +340,8 @@ use function writeOut( outputFile, output )
 outputFile being the location of where you would like the file to be located.
 
 This will write the output of the parsing to where you would like it to be located.
+
+writeOut('/home/twitch153/seorigin/debug.txt', output)
 """
 def writeOut( outputFile, output ):
     try:
@@ -255,14 +353,28 @@ def writeOut( outputFile, output ):
     parsedOut.write(output)
     parsedOut.close()
 
+"""
+seorigin( outputFile, lines ) creates the seorigin database by calling the necessary functions to 
+create and write the seorigin database.
+"""
+def seorigin( outputFile, lines ):
+    try:
+        createTables( outputFile )
+        writeTB_FILES( outputFile, lines )
+        writeTB_DEFINITIONNAMES(  outputFile, lines )
+    except Exception as err:
+        print("Error: {0}".format(err),"\n")
+        usage()
+
+"""
+main() is where all the magic happens!Like Disney land, just less...'cartooney'.
+"""
 def main():
-    print("Workflow component v1.1.1: ")
+    print("Workflow component v1.1.2: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
-    createTables( outputFile )
-    #writeOut('/home/twitch153/seorigin/debug.txt', output)
-    writeDefineDB( outputFile, lines )
-    writeSourceDB( outputFile, lines )
+    getStatementType( lines )
+    seorigin( outputFile, lines )
 
 """
 The main function is run below.
