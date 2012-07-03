@@ -788,6 +788,11 @@ interface(`init_script_file_entry_type',`
 		type initrc_exec_t;
 	')
 
+	# /sbin/runscript is a wrapper for /sbin/rc, so run_init_t
+	# wants to execute initrc_exec_t (no transition needed anymore) whereas
+	# runscript previously was a binary
+	# allow $1 initrc_exec_t:file execute_no_trans;
+
 	domain_entry_file($1, initrc_exec_t)
 ')
 
@@ -808,14 +813,6 @@ interface(`init_spec_domtrans_script',`
 
 	files_list_etc($1)
 	spec_domtrans_pattern($1, initrc_exec_t, initrc_t)
-
-	ifdef(`distro_gentoo',`
-		gen_require(`
-			type rc_exec_t;
-		')
-
-		domtrans_pattern($1, rc_exec_t, initrc_t)
-	')
 
 	ifdef(`enable_mcs',`
 		range_transition $1 initrc_exec_t:process s0;
@@ -850,6 +847,13 @@ interface(`init_domtrans_script',`
 
 	ifdef(`enable_mls',`
 		range_transition $1 initrc_exec_t:process s0 - mls_systemhigh;
+	')
+
+	ifdef(`distro_gentoo',`
+		gen_require(`
+			type rc_exec_t;
+		')
+		domtrans_pattern($1, rc_exec_t, initrc_t)
 	')
 ')
 
@@ -1575,6 +1579,11 @@ interface(`init_rw_script_tmp_files',`
 ##	The object class.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`init_script_tmp_filetrans',`
 	gen_require(`
@@ -1582,7 +1591,7 @@ interface(`init_script_tmp_filetrans',`
 	')
 
 	files_search_tmp($1)
-	filetrans_pattern($1, initrc_tmp_t, $2, $3)
+	filetrans_pattern($1, initrc_tmp_t, $2, $3, $4)
 ')
 
 ########################################
@@ -1750,7 +1759,7 @@ interface(`init_pid_filetrans_utmp',`
 		type initrc_var_run_t;
 	')
 
-	files_pid_filetrans($1, initrc_var_run_t, file)
+	files_pid_filetrans($1, initrc_var_run_t, file, "utmp")
 ')
 
 ########################################

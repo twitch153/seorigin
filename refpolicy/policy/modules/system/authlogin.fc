@@ -1,7 +1,9 @@
 
 /bin/login		--	gen_context(system_u:object_r:login_exec_t,s0)
 
+ifndef(`distro_gentoo',`
 /etc/\.pwd\.lock	--	gen_context(system_u:object_r:shadow_t,s0)
+')
 /etc/group\.lock	--	gen_context(system_u:object_r:shadow_t,s0)
 /etc/gshadow.*		--	gen_context(system_u:object_r:shadow_t,s0)
 /etc/passwd\.lock	--	gen_context(system_u:object_r:shadow_t,s0)

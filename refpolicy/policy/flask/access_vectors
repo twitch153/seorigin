@@ -445,6 +445,8 @@ class capability2
 	mac_override	# unused by SELinux
 	mac_admin	# unused by SELinux
 	syslog
+	wake_alarm
+	epollwakeup
 }
 
 #
@@ -761,7 +763,6 @@ inherits database
 class db_table
 inherits database
 {
-	use		# deprecated
 	select
 	update
 	insert
@@ -780,7 +781,6 @@ inherits database
 class db_column
 inherits database
 {
-	use		# deprecated
 	select
 	update
 	insert
@@ -790,7 +790,7 @@ class db_tuple
 {
 	relabelfrom
 	relabelto
-	use		# deprecated
+	use
 	select
 	update
 	insert

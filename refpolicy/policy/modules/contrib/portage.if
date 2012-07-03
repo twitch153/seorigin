@@ -151,6 +151,7 @@ interface(`portage_compile_domain',`
 	corenet_udp_sendrecv_all_ports($1)
 	corenet_tcp_connect_all_reserved_ports($1)
 	corenet_tcp_connect_distccd_port($1)
+	corenet_tcp_connect_git_port($1)
 
 	dev_read_sysfs($1)
 	dev_read_rand($1)
@@ -174,9 +175,9 @@ interface(`portage_compile_domain',`
 	# needed for merging dbus:
 	selinux_compute_access_vector($1)
 
-	auth_read_all_dirs_except_auth_files($1)
-	auth_read_all_files_except_auth_files($1)
-	auth_read_all_symlinks_except_auth_files($1)
+	files_list_non_auth_dirs($1)
+	files_read_non_auth_files($1)
+	files_read_non_auth_symlinks($1)
 
 	libs_exec_lib_files($1)
 	# some config scripts use ldd
@@ -361,3 +362,33 @@ interface(`portage_dontaudit_rw_tmp_files',`
 
 	dontaudit $1 portage_tmp_t:file rw_file_perms;
 ')
+
+########################################
+## <summary>
+##   Allow the domain to run within an eselect module script. 
+## </summary>
+## <param name="domain">
+##     <summary>
+##     Domain to allow within an eselect module
+##     </summary>
+## </param>
+#   Specific to Gentoo,
+#   eselect modules allow users to switch between different flavors or versions
+#   of underlying components. In return, eselect makes a wrapper binary which 
+#   makes the proper selections. If this binary is different from bin_t, it might
+#   not hold the necessary privileges for the wrapper to function. However, just
+#   marking the target binaries doesn't always work, since for python scripts the
+#   wrapper doesn't execute it, but treats the target as a library.
+#
+interface(`gentoo_portage_eselect_module',`
+       gen_require(`
+               type portage_t;
+       ')
+       allow $1 self:fifo_file { read write };
+
+       corecmd_exec_shell($1)  
+
+       # Support for /etc/env.d changes
+       files_manage_etc_runtime_files($1)
+')
+

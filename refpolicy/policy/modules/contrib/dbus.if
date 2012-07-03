@@ -151,12 +151,17 @@ template(`dbus_role_template',`
 
 	userdom_read_user_home_content_files($1_dbusd_t)
 
+
 	ifdef(`hide_broken_symptoms', `
 		dontaudit $3 $1_dbusd_t:netlink_selinux_socket { read write };
 	')
 
 	optional_policy(`
 		hal_dbus_chat($1_dbusd_t)
+	')
+
+	optional_policy(`
+		xdg_read_generic_data_home_files($1_dbusd_t)
 	')
 
 	optional_policy(`
@@ -218,6 +223,8 @@ interface(`dbus_session_bus_client',`
 
 	# For connecting to the bus
 	allow $1 session_bus_type:unix_stream_socket connectto;
+
+	dontaudit $1 session_bus_type:fd use;
 ')
 
 ########################################

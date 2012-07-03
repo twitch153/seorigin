@@ -8,7 +8,6 @@ policy_module(bitlbee, 1.4.0)
 type bitlbee_t;
 type bitlbee_exec_t;
 init_daemon_domain(bitlbee_t, bitlbee_exec_t)
-inetd_tcp_service_domain(bitlbee_t, bitlbee_exec_t)
 
 type bitlbee_conf_t;
 files_config_file(bitlbee_conf_t)
@@ -87,6 +86,10 @@ logging_send_syslog_msg(bitlbee_t)
 miscfiles_read_localization(bitlbee_t)
 
 sysnet_dns_name_resolve(bitlbee_t)
+
+optional_policy(`
+	inetd_tcp_service_domain(bitlbee_t, bitlbee_exec_t)
+')
 
 optional_policy(`
 	# normally started from inetd using tcpwrappers, so use those entry points

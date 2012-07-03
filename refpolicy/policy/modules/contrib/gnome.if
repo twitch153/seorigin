@@ -19,6 +19,7 @@ interface(`gnome_role',`
 	gen_require(`
 		type gconfd_t, gconfd_exec_t;
 		type gconf_tmp_t;
+		type gconf_home_t;
 	')
 
 	role $1 types gconfd_t;
@@ -28,11 +29,16 @@ interface(`gnome_role',`
 	allow gconfd_t $2:fifo_file write;
 	allow gconfd_t $2:unix_stream_socket connectto;
 
+	manage_dirs_pattern($2, gconf_home_t, gconf_home_t)
+	manage_files_pattern($2, gconf_home_t, gconf_home_t)
+
 	ps_process_pattern($2, gconfd_t)
 
 	#gnome_stream_connect_gconf_template($1, $2)
 	read_files_pattern($2, gconf_tmp_t, gconf_tmp_t)
 	allow $2 gconfd_t:unix_stream_socket connectto;
+
+	gnome_manage_config($2)
 ')
 
 ########################################
@@ -143,9 +149,11 @@ interface(`gnome_domtrans_gconfd',`
 interface(`gnome_setattr_config_dirs',`
 	gen_require(`
 		type gnome_home_t;
+		type gnome_xdg_config_t;
 	')
 
 	setattr_dirs_pattern($1, gnome_home_t, gnome_home_t)
+	setattr_dirs_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
 	files_search_home($1)
 ')
 
@@ -162,11 +170,16 @@ interface(`gnome_setattr_config_dirs',`
 template(`gnome_read_config',`
 	gen_require(`
 		type gnome_home_t;
+		type gnome_xdg_config_t;
 	')
 
 	list_dirs_pattern($1, gnome_home_t, gnome_home_t)
 	read_files_pattern($1, gnome_home_t, gnome_home_t)
 	read_lnk_files_pattern($1, gnome_home_t, gnome_home_t)
+
+	list_dirs_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
+	read_files_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
+	read_lnk_files_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
 ')
 
 ########################################
@@ -182,9 +195,14 @@ template(`gnome_read_config',`
 interface(`gnome_manage_config',`
 	gen_require(`
 		type gnome_home_t;
+		type gnome_xdg_config_t;
 	')
 
-	allow $1 gnome_home_t:dir manage_dir_perms;
-	allow $1 gnome_home_t:file manage_file_perms;
+	manage_dirs_pattern($1, gnome_home_t, gnome_home_t)
+	manage_files_pattern($1, gnome_home_t, gnome_home_t)
+
+	manage_dirs_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
+	manage_files_pattern($1, gnome_xdg_config_t, gnome_xdg_config_t)
+
 	userdom_search_user_home_dirs($1)
 ')

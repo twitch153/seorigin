@@ -4,6 +4,12 @@ policy_module(dhcp, 1.9.0)
 #
 # Declarations
 #
+## <desc>
+## <p>
+##	Enable LDAP backend support for DHCP daemon.
+## </p>
+## </desc>
+gen_tunable(dhcp_use_ldap, false)
 
 type dhcpd_t;
 type dhcpd_exec_t;
@@ -66,6 +72,7 @@ corenet_tcp_sendrecv_all_ports(dhcpd_t)
 corenet_udp_sendrecv_all_ports(dhcpd_t)
 corenet_tcp_bind_generic_node(dhcpd_t)
 corenet_udp_bind_generic_node(dhcpd_t)
+corenet_udp_bind_all_unreserved_ports(dhcpd_t) # scanning available interfaces
 corenet_tcp_bind_dhcpd_port(dhcpd_t)
 corenet_udp_bind_dhcpd_port(dhcpd_t)
 corenet_udp_bind_pxe_port(dhcpd_t)
@@ -103,6 +110,10 @@ userdom_dontaudit_search_user_home_dirs(dhcpd_t)
 
 ifdef(`distro_gentoo',`
 	allow dhcpd_t self:capability { chown dac_override setgid setuid sys_chroot };
+')
+
+tunable_policy(`dhcp_use_ldap',`
+	sysnet_use_ldap(dhcpd_t)
 ')
 
 optional_policy(`

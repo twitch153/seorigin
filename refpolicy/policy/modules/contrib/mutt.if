@@ -1,0 +1,104 @@
+## <summary>Mutt e-mail client</summary>
+
+#######################################
+## <summary>
+##      The role for using the mutt application.
+## </summary>
+## <param name="role">
+##      <summary>
+##      The role associated with the user domain.
+##      </summary>
+## </param>
+## <param name="domain">
+##      <summary>
+##      The user domain.
+##      </summary>
+## </param>
+#
+interface(`mutt_role',`
+	gen_require(`
+		type mutt_t, mutt_exec_t, mutt_home_t, mutt_conf_t, mutt_etc_t;
+		type mutt_tmp_t;
+	')
+
+	role $1 types mutt_t;
+
+	domtrans_pattern($2, mutt_exec_t, mutt_t)
+	
+	allow $2 mutt_t:process { ptrace signal_perms };
+
+	manage_dirs_pattern($2, mutt_home_t, mutt_home_t)
+	manage_files_pattern($2, mutt_home_t, mutt_home_t)
+	
+	manage_dirs_pattern($2, mutt_conf_t, mutt_conf_t)
+	manage_files_pattern($2, mutt_conf_t, mutt_conf_t)
+
+	relabel_dirs_pattern($2, mutt_home_t, mutt_home_t)
+	relabel_files_pattern($2, mutt_home_t, mutt_home_t)
+	
+	relabel_dirs_pattern($2, mutt_conf_t, mutt_conf_t)
+	relabel_files_pattern($2, mutt_conf_t, mutt_conf_t)
+
+	relabel_dirs_pattern($2, mutt_tmp_t, mutt_tmp_t)
+	relabel_files_pattern($2, mutt_tmp_t, mutt_tmp_t)
+
+	ps_process_pattern($2, mutt_t)
+')	
+
+#######################################
+## <summary>
+##      Allow other domains to read mutt's home files 
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The domain that is allowed read access to the mutt_home_t files
+##      </summary>
+## </param>
+#
+interface(`mutt_read_home_files',`
+	gen_require(`
+		type mutt_home_t;
+	')
+
+	read_files_pattern($1, mutt_home_t, mutt_home_t)
+')
+
+#######################################
+## <summary>
+##      Allow other domains to read mutt's temporary files
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The domain that is allowed read access to the temporary files
+##      </summary>
+## </param>
+#
+interface(`mutt_read_tmp_files',`
+	gen_require(`
+		type mutt_tmp_t;
+	')
+
+	read_files_pattern($1, mutt_tmp_t, mutt_tmp_t)
+')
+
+#######################################
+## <summary>
+##      Allow other domains to handle mutt's temporary files (used for instance
+##      for e-mail drafts)
+## </summary>
+## <param name="domain">
+##      <summary>
+##      The domain that is allowed read/write access to the temporary files
+##      </summary>
+## </param>
+#
+interface(`mutt_rw_tmp_files',`
+	gen_require(`
+		type mutt_tmp_t;
+	')
+
+	# The use of rw_files_pattern here is not needed, since this incurs the open privilege as well
+	allow $1 mutt_tmp_t:dir search_dir_perms;
+	allow $1 mutt_tmp_t:file { read write };
+	files_search_tmp($1)
+')

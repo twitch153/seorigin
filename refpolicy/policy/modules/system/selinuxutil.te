@@ -13,8 +13,10 @@ attribute can_write_binary_policy;
 attribute can_relabelto_binary_policy;
 
 attribute_role newrole_roles;
+role newrole_roles types newrole_t;
 
 attribute_role run_init_roles;
+role run_init_roles types run_init_t;
 role system_r types run_init_t;
 
 attribute_role semanage_roles;
@@ -232,6 +234,8 @@ allow newrole_t self:unix_dgram_socket sendto;
 allow newrole_t self:unix_stream_socket { create_stream_socket_perms connectto };
 allow newrole_t self:netlink_audit_socket { create_netlink_socket_perms nlmsg_relay };
 
+dontaudit newrole_t self:capability dac_read_search;
+
 read_files_pattern(newrole_t, default_context_t, default_context_t)
 read_lnk_files_pattern(newrole_t, default_context_t, default_context_t)
 
@@ -337,8 +341,8 @@ selinux_compute_create_context(restorecond_t)
 selinux_compute_relabel_context(restorecond_t)
 selinux_compute_user_contexts(restorecond_t)
 
-auth_relabel_all_files_except_auth_files(restorecond_t )
-auth_read_all_files_except_auth_files(restorecond_t)
+files_relabel_non_auth_files(restorecond_t )
+files_read_non_auth_files(restorecond_t)
 auth_use_nsswitch(restorecond_t)
 
 locallogin_dontaudit_use_fds(restorecond_t)
@@ -513,6 +517,10 @@ ifdef(`distro_ubuntu',`
 	optional_policy(`
 		unconfined_domain(semanage_t)
 	')
+')
+
+optional_policy(`
+	gentoo_portage_eselect_module(semanage_t)
 ')
 
 ########################################

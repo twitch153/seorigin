@@ -66,6 +66,27 @@ interface(`sysnet_dontaudit_use_dhcpc_fds',`
 
 ########################################
 ## <summary>
+##	Do not audit attempts to read/write to
+##	the dhcp unix stream socket descriptors.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to not audit.
+##	</summary>
+## </param>
+#
+interface(`sysnet_dontaudit_rw_dhcpc_unix_stream_sockets',`
+	gen_require(`
+		type dhcpc_t;
+	')
+
+	dontaudit $1 dhcpc_t:unix_stream_socket { read write };
+')
+
+
+
+########################################
+## <summary>
 ##	Send a SIGCHLD signal to the dhcp client.
 ## </summary>
 ## <param name="domain">
@@ -382,13 +403,18 @@ interface(`sysnet_create_config',`
 ##	Domain allowed access.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`sysnet_etc_filetrans_config',`
 	gen_require(`
 		type net_conf_t;
 	')
 
-	files_etc_filetrans($1, net_conf_t, file)
+	files_etc_filetrans($1, net_conf_t, file, $2)
 ')
 
 #######################################
@@ -603,6 +629,11 @@ interface(`sysnet_search_dhcp_state',`
 ##	The object class.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 #
 interface(`sysnet_dhcp_state_filetrans',`
 	gen_require(`
@@ -610,7 +641,7 @@ interface(`sysnet_dhcp_state_filetrans',`
 	')
 
 	files_search_var_lib($1)
-	filetrans_pattern($1, dhcp_state_t, $2, $3)
+	filetrans_pattern($1, dhcp_state_t, $2, $3, $4)
 ')
 
 ########################################

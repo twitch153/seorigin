@@ -480,6 +480,11 @@ interface(`logging_domtrans_syslog',`
 ##	The object class of the object being created.
 ##	</summary>
 ## </param>
+## <param name="name" optional="true">
+##	<summary>
+##	The name of the object being created.
+##	</summary>
+## </param>
 ## <infoflow type="write" weight="10"/>
 #
 interface(`logging_log_filetrans',`
@@ -488,7 +493,7 @@ interface(`logging_log_filetrans',`
 	')
 
 	files_search_var($1)
-	filetrans_pattern($1, var_log_t, $2, $3)
+	filetrans_pattern($1, var_log_t, $2, $3, $4)
 ')
 
 ########################################
@@ -600,6 +605,25 @@ interface(`logging_read_syslog_config',`
 	')
 
 	allow $1 syslog_conf_t:file read_file_perms;
+')
+
+########################################
+## <summary>
+##	Delete the syslog socket files
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`logging_delete_devlog_socket',`
+	gen_require(`
+		type devlog_t;
+	')
+
+	allow $1 devlog_t:sock_file unlink;
 ')
 
 ########################################

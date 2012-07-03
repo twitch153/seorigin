@@ -1,0 +1,6 @@
+HOME_DIR/\.pan2(/.*)?		gen_context(system_u:object_r:pan_home_t,s0)
+
+#
+# /usr
+#
+/usr/bin/pan		--	gen_context(system_u:object_r:pan_exec_t,s0)

@@ -40,13 +40,13 @@ files_pid_file(asterisk_var_run_t)
 #
 
 # dac_override for /var/run/asterisk
-allow asterisk_t self:capability { dac_override setgid setuid sys_nice net_admin };
+allow asterisk_t self:capability { dac_override setgid setuid sys_nice net_admin chown };
 dontaudit asterisk_t self:capability sys_tty_config;
 allow asterisk_t self:process { getsched setsched signal_perms getcap setcap };
 allow asterisk_t self:fifo_file rw_fifo_file_perms;
 allow asterisk_t self:sem create_sem_perms;
 allow asterisk_t self:shm create_shm_perms;
-allow asterisk_t self:unix_stream_socket connectto;
+allow asterisk_t self:unix_stream_socket { connectto listen accept };
 allow asterisk_t self:tcp_socket create_stream_socket_perms;
 allow asterisk_t self:udp_socket create_socket_perms;
 
@@ -117,6 +117,7 @@ dev_rw_generic_usb_dev(asterisk_t)
 dev_read_sysfs(asterisk_t)
 dev_read_sound(asterisk_t)
 dev_write_sound(asterisk_t)
+dev_read_rand(asterisk_t)
 dev_read_urand(asterisk_t)
 
 domain_use_interactive_fds(asterisk_t)

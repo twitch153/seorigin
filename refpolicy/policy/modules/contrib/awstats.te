@@ -17,7 +17,6 @@ files_tmp_file(awstats_tmp_t)
 type awstats_var_lib_t;
 files_type(awstats_var_lib_t)
 
-apache_content_template(awstats)
 
 ########################################
 #
@@ -59,6 +58,7 @@ miscfiles_read_localization(awstats_t)
 
 sysnet_dns_name_resolve(awstats_t)
 
+apache_content_template(awstats)
 apache_read_log(awstats_t)
 
 optional_policy(`

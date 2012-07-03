@@ -9,6 +9,7 @@
 /etc/udev/rules.d(/.*)? gen_context(system_u:object_r:udev_rules_t,s0)
 /etc/udev/scripts/.+ --	gen_context(system_u:object_r:udev_helper_exec_t,s0)
 
+/lib/udev/udevd	--	gen_context(system_u:object_r:udev_exec_t,s0)
 /lib/udev/udev-acl --	gen_context(system_u:object_r:udev_exec_t,s0)
 
 ifdef(`distro_debian',`
@@ -26,10 +27,13 @@ ifdef(`distro_redhat',`
 /sbin/start_udev --	gen_context(system_u:object_r:udev_exec_t,s0)
 ')
 
+/usr/bin/udevadm	--	gen_context(system_u:object_r:udev_exec_t,s0)
 /usr/bin/udevinfo --	gen_context(system_u:object_r:udev_exec_t,s0)
 
 /var/run/PackageKit/udev(/.*)? gen_context(system_u:object_r:udev_var_run_t,s0)
-/var/run/udev(/.*)?	gen_context(system_u:object_r:udev_tbl_t,s0)
+/var/run/udev	-d	gen_context(system_u:object_r:udev_var_run_t,s0)
+/var/run/udev/rules\.d(/.*)?	gen_context(system_u:object_r:udev_tbl_t,s0)
+/var/run/udev/data(/.*)?	gen_context(system_u:object_r:udev_tbl_t,s0)
 
 ifdef(`distro_debian',`
 /var/run/xen-hotplug -d	gen_context(system_u:object_r:udev_var_run_t,s0)

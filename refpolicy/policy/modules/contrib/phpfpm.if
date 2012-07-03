@@ -1,0 +1,30 @@
+## <summary>PHP FastCGI Process Manager</summary>
+
+#################################################
+## <summary>
+## 	Administrate a phpfpm environment
+## </summary>
+## <param name="domain">
+## 	<summary>
+##	Domain allowed access
+##	</summary>
+## </param>
+# 
+interface(`phpfpm_admin',`
+	gen_require(`
+		type phpfpm_t;
+		type phpfpm_log_t, phpfpm_tmp_t, phpfpm_var_run_t;
+	')
+
+	allow $1 phpfpm_t:process { ptrace signal_perms };
+	ps_process_pattern($1, phpfpm_t)
+
+	logging_list_logs($1)
+	admin_pattern($1, phpfpm_log_t)
+
+	files_list_tmp($1)
+	admin_pattern($1, phpfpm_tmp_t)
+
+	files_list_pids($1)
+	admin_pattern($1, phpfpm_var_run_t)
+')

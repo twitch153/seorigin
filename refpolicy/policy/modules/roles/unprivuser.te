@@ -70,6 +70,10 @@ ifndef(`distro_redhat',`
 	')
 
 	optional_policy(`
+		gorg_role(user_r, user_t)
+	')
+
+	optional_policy(`
 		gpg_role(user_r, user_t)
 	')
 
@@ -83,6 +87,10 @@ ifndef(`distro_redhat',`
 
 	optional_policy(`
 		java_role(user_r, user_t)
+	')
+
+	optional_policy(`
+		links_role(user_r, user_t)
 	')
 
 	optional_policy(`
@@ -106,6 +114,14 @@ ifndef(`distro_redhat',`
 	')
 
 	optional_policy(`
+		mutt_role(user_r, user_t)
+	')
+
+	optional_policy(`
+		pan_role(user_r, user_t)
+	')
+
+	optional_policy(`
 		postgresql_role(user_r, user_t)
 	')
 
@@ -119,6 +135,10 @@ ifndef(`distro_redhat',`
 
 	optional_policy(`
 		rssh_role(user_r, user_t)
+	')
+
+	optional_policy(`
+		skype_role(user_r, user_t)
 	')
 
 	optional_policy(`

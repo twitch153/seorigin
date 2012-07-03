@@ -34,6 +34,9 @@ typealias gnome_home_t alias { auditadm_gnome_home_t secadm_gnome_home_t };
 typealias gnome_home_t alias unconfined_gnome_home_t;
 userdom_user_home_content(gnome_home_t)
 
+type gnome_xdg_config_t;
+xdg_config_home_content(gnome_xdg_config_t)
+
 ##############################
 #
 # Local Policy

@@ -234,7 +234,6 @@ userdom_read_user_home_content_files(mplayer_t)
 userdom_read_user_home_content_symlinks(mplayer_t)
 userdom_write_user_tmp_sockets(mplayer_t)
 
-xserver_user_x_domain_template(mplayer, mplayer_t, mplayer_tmpfs_t)
 
 # Read songs
 ifdef(`enable_mls',`',`
@@ -308,4 +307,8 @@ optional_policy(`
 optional_policy(`
 	pulseaudio_exec(mplayer_t)
 	pulseaudio_stream_connect(mplayer_t)
+')
+
+optional_policy(`
+	xserver_user_x_domain_template(mplayer, mplayer_t, mplayer_tmpfs_t)
 ')

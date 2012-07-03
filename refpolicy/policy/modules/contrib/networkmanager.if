@@ -191,3 +191,68 @@ interface(`networkmanager_read_pid_files',`
 	files_search_pids($1)
 	allow $1 NetworkManager_var_run_t:file read_file_perms;
 ')
+
+########################################
+## <summary>
+##	Do not audit use of wpa_cli file descriptors
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain to dontaudit access.
+##	</summary>
+## </param>
+#
+interface(`networkmanager_dontaudit_use_wpa_cli_fds',`
+	gen_require(`
+		type wpa_cli_t;
+	')
+
+	dontaudit $1 wpa_cli_t:fd use;
+')
+
+
+########################################
+## <summary>
+##      Execute wpa_cli in the wpa_cli domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+#
+interface(`networkmanager_domtrans_wpa_cli',`
+        gen_require(`
+                type wpa_cli_t, wpa_cli_exec_t;
+        ')
+
+        corecmd_search_bin($1)
+        domtrans_pattern($1, wpa_cli_exec_t, wpa_cli_t)
+')
+
+########################################
+## <summary>
+##      Execute wpa cli in the wpa_cli domain, and
+##      allow the specified role the wpa_cli domain.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed to transition.
+##      </summary>
+## </param>
+## <param name="role">
+##      <summary>
+##      Role allowed access.
+##      </summary>
+## </param>
+## <rolecap/>
+#
+interface(`networkmanager_run_wpa_cli',`
+        gen_require(`
+                type wpa_cli_exec_t;
+        ')
+
+        networkmanager_domtrans_wpa_cli($1)
+        role $2 types wpa_cli_t;
+')
+

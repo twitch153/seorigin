@@ -94,6 +94,10 @@ optional_policy(`
 ')
 
 optional_policy(`
+	bacula_run_admin(sysadm_t, sysadm_r)
+')
+
+optional_policy(`
 	backup_run(sysadm_t, sysadm_r)
 ')
 
@@ -145,6 +149,10 @@ optional_policy(`
 
 optional_policy(`
 	dpkg_run(sysadm_t, sysadm_r)
+')
+
+optional_policy(`
+	dracut_run(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -233,13 +241,25 @@ optional_policy(`
 ')
 
 optional_policy(`
+	mutt_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
 	mysql_stream_connect(sysadm_t)
+')
+
+optional_policy(`
+	networkmanager_run_wpa_cli(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
 	netutils_run(sysadm_t, sysadm_r)
 	netutils_run_ping(sysadm_t, sysadm_r)
 	netutils_run_traceroute(sysadm_t, sysadm_r)
+')
+
+optional_policy(`
+	nginx_admin(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -267,6 +287,14 @@ optional_policy(`
 
 optional_policy(`
 	pyzor_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	qemu_read_state(sysadm_t)
+	qemu_signal(sysadm_t)
+	qemu_kill(sysadm_t)
+	qemu_setsched(sysadm_t)
+	qemu_run(sysadm_t, sysadm_r)
 ')
 
 optional_policy(`
@@ -390,6 +418,14 @@ optional_policy(`
 ')
 
 optional_policy(`
+	vde_role(sysadm_r, sysadm_t)
+')
+
+optional_policy(`
+	virt_stream_connect(sysadm_t)
+')
+
+optional_policy(`
 	vmware_role(sysadm_r, sysadm_t)
 ')
 
@@ -452,6 +488,10 @@ ifndef(`distro_redhat',`
 
 	optional_policy(`
 		gnome_role(sysadm_r, sysadm_t)
+	')
+
+	optional_policy(`
+		gorg_role(sysadm_r, sysadm_t)
 	')
 
 	optional_policy(`

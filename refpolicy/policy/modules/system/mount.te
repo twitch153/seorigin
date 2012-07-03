@@ -51,6 +51,7 @@ files_tmp_filetrans(mount_t, mount_tmp_t, { file dir })
 
 kernel_read_system_state(mount_t)
 kernel_read_kernel_sysctls(mount_t)
+kernel_setsched(mount_t)
 kernel_dontaudit_getattr_core_if(mount_t)
 kernel_dontaudit_write_debugfs_dirs(mount_t)
 kernel_dontaudit_write_proc_dirs(mount_t)
@@ -80,7 +81,7 @@ files_etc_filetrans_etc_runtime(mount_t, file)
 files_mounton_all_mountpoints(mount_t)
 files_unmount_rootfs(mount_t)
 # These rules need to be generalized.  Only admin, initrc should have it:
-files_relabelto_all_file_type_fs(mount_t)
+files_relabel_all_file_type_fs(mount_t)
 files_mount_all_file_type_fs(mount_t)
 files_unmount_all_file_type_fs(mount_t)
 # for when /etc/mtab loses its type
@@ -89,7 +90,8 @@ files_read_isid_type_files(mount_t)
 # For reading cert files
 files_read_usr_files(mount_t)
 files_list_mnt(mount_t)
-files_dontaudit_write_root_dirs(mount_t)
+files_dontaudit_write_all_mountpoints(mount_t)
+files_dontaudit_setattr_all_mountpoints(mount_t)
 
 fs_getattr_xattr_fs(mount_t)
 fs_getattr_cifs(mount_t)
@@ -106,6 +108,7 @@ mls_file_read_all_levels(mount_t)
 mls_file_write_all_levels(mount_t)
 
 selinux_get_enforce_mode(mount_t)
+selinux_get_fs_mount(mount_t)
 
 storage_raw_read_fixed_disk(mount_t)
 storage_raw_write_fixed_disk(mount_t)
@@ -113,6 +116,7 @@ storage_raw_read_removable_device(mount_t)
 storage_raw_write_removable_device(mount_t)
 
 term_use_all_terms(mount_t)
+term_dontaudit_manage_pty_dirs(mount_t)
 
 auth_use_nsswitch(mount_t)
 
@@ -145,8 +149,8 @@ ifdef(`distro_ubuntu',`
 ')
 
 tunable_policy(`allow_mount_anyfile',`
-	auth_read_all_dirs_except_auth_files(mount_t)
-	auth_read_all_files_except_auth_files(mount_t)
+	files_list_non_auth_dirs(mount_t)
+	files_read_non_auth_files(mount_t)
 	files_mounton_non_security(mount_t)
 ')
 
@@ -189,6 +193,10 @@ optional_policy(`
 		rhgb_dontaudit_rw_stream_sockets(mount_t)
 		term_dontaudit_use_ptmx(mount_t)
 	')
+')
+
+optional_policy(`
+	puppet_rw_tmp(mount_t)
 ')
 
 # for kernel package installation

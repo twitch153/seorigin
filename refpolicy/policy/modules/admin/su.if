@@ -73,6 +73,7 @@ template(`su_restricted_domain_template', `
 
 	# for the rootok check
 	selinux_compute_access_vector($1_su_t)
+	selinux_get_fs_mount($1_su_t)
 
 	auth_domtrans_chk_passwd($1_su_t)
 	auth_dontaudit_read_shadow($1_su_t)
@@ -205,6 +206,7 @@ template(`su_role_template',`
 
 	# needed for pam_rootok
 	selinux_compute_access_vector($1_su_t)
+	selinux_get_fs_mount($1_su_t)
 
 	auth_domtrans_chk_passwd($1_su_t)
 	auth_dontaudit_read_shadow($1_su_t)
