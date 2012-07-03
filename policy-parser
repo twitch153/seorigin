@@ -116,19 +116,25 @@ def parseFile( lines ):
             line = re.sub(': \-\d+\-', '', line)
             # Take line and break the parts after the file location into the source expression
             sourceExpression = re.sub('^.*\d+ ', '',line)
-            sourceExpression = re.sub('\s', '', sourceExpression) # Remove all white space in the line
+            #sourceExpression = re.sub('\s', '', sourceExpression) # Remove all white space in the line
             sourceExpression = re.sub('^policy.*$', '', sourceExpression)
             sourceExpression = re.sub('[ififn]def.*$', '', sourceExpression)
             sourceExpression = re.sub('ifelse.*$', '', sourceExpression)
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
+            sourceExpression = re.sub('^optional_policy.*', '', sourceExpression)
+            sourceExpression = re.sub('^incr\(.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
             sourceExpression = re.sub('gen_tunable.*$', '', sourceExpression) # gen_tunable omitted from source records
             sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression) 
             sourceExpression = re.sub('\->.*$', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
-            sourceCall = re.sub('\(.*\)$', '', sourceExpression)
+            sourceExpression = re.sub('^i$', '', sourceExpression)
+            sourceExpression = re.sub('^if$', '', sourceExpression)
+            sourceExpression = re.sub('\n', '', sourceExpression)
+            print(sourceExpression)
+            sourceCall = re.sub('\(.*$', '', sourceExpression)
             sourceCallArgs = re.sub('^.*\(', '(', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
             sourceLocation = re.sub('\s+.*$', '', line)
@@ -296,7 +302,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.3.2: ")
+    print("Policy-parser v1.3.4: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
