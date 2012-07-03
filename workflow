@@ -34,7 +34,15 @@ import sys, getopt, re, os, sqlite3
 
 def usage():
 	print("Proper usage:\nworkflow -i(--input) [file to parse] -o(--output) [database location]")
-
+def labelHelp():
+        print("Labels: ")
+        print("========\n")
+        print("   Label classes: ")
+        print("   ===============")
+        print("   Label classes are separate by three classes: type label, class label, and\n   string label.")
+        print("   When inserting labels into SEorigin's database we consider the label class as\n   an integer.\n")
+        print("   Integer types are as follows: ")
+        print("   0 = Type label\n   1 = String label\n   2 = Class Label")
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
 """
@@ -59,6 +67,7 @@ def parse_cmd_args():
             outputCheck=False
         elif o in ['-h', '--help']:
             usage()
+            labelHelp()
 
 # Sanity check to make sure the parsed information is getting written to some location.
     if inputCheck:
@@ -77,7 +86,7 @@ def readInput( inputFile ):
     try:
         f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
     except Exception as err:
-        print("\n Error: {0}".format(err),"\n")
+        print("\nreadInput() Error: {0}".format(err),"\n")
         usage()
         
     fileLines = f.readlines()
@@ -91,25 +100,18 @@ a certain value to each statement and then returns the value of the statement.
 """
 def getStatementType( lines ):
     for line in lines:
-        statementValue = 99999999
+        statementValue = 4
         if re.search('^allow', line):
             statementValue = 0
-        elif re.search('^corenet_', line):
+        # Checks for all interface calls, an interface is something like this: "corecmd_read_bin_symlinks($1)"
+        elif re.search('^.*\(', line):
             statementValue = 1
         elif re.search('^typeattribute', line):
             statementValue = 2
         elif re.search('^dontaudit', line):
             statementValue = 3
-        elif re.search('^attribute', line):
-            statementValue = 4
-        elif re.search('^relabel_', line):
-            statementValue = 5
-        elif re.search('^domain_', line):
-            statementValue = 6
-        elif re.search('^manage', line):
-            statementValue = 7
-        elif re.search('^type_', line):
-            statementValue = 8
+        else:
+            statementValue += 1
     return statementValue
 
 """
@@ -123,14 +125,23 @@ def createTables( outputFile ):
         database.execute('''create table if not exists tb_files
         (FileID Integer primary key AUTOINCREMENT, Filename text)''')
         database.execute('''create table if not exists tb_definitionNames 
-        (DefinitionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, DefinitionName 
-        Text NOT NULL)''')    
+        (DefinitionId Integer primary key AUTOINCREMENT NOT NULL, DefinitionName 
+        Text NOT NULL)''')
+        database.execute('''create table if not exists tb_label
+        (LabelId Integer PRIMARY KEY AUTOINCREMENT NOT NULL, LabelClass INTEGER NOT NULL, 
+        Name Text NOT NULL)''')
+        database.execute('''create table if not exists tb_labelSet
+        (LabelSetId Integer NOT NULL, LabelId NOT NULL, primary key(LabelSetID, LabelID),
+        foreign key(LabelId) references tb_label(LabelId))''')
+        database.execute('''create table if not exists tb_statement_declare 
+        (StatementId Integer primary key AUTOINCREMENT NOT NULL, DeclarationClass Integer NOT NULL, 
+        TargetId Integer NOT NULL, AliasId Integer, foreign key(TargetId) references tb_labelSet(LabelSetId), 
+        foreign key(AliasId) references tb_LabelSet(LabelSetId))''')  
         database.execute('''create table if not exists tb_source
         (FileID Integer primary key AUTOINCREMENT, Line_Number text, Call_Statement text,
         Call_Arguments text)''')
-        outputFile.commit()
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ncreateTables() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
@@ -157,7 +168,7 @@ def cleanDefine( lines ):
                 cleanDefine.append(line)
         return cleanDefine
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ncleanDefine() Error: {0}".format(err),"\n")
         usage()
         sys.exit() 
 
@@ -184,14 +195,14 @@ def cleanSource( lines ):
                 cleanSource.append(line)
         return cleanSource
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ncleanSource() Error: {0}".format(err),"\n")
         usage()
         sys.exit()
 
 """
-writeTB_FILES() writes specific information from the input file to tb_files in the seorigin db.
+insertFile() writes specific information from the input file to tb_files in the seorigin db.
 """
-def writeTB_FILES( outputFile, lines ):
+def insertFile( outputFile, lines ):
     try:
         database = outputFile.cursor()
         # Takes the lines from the input and "cleans" them to be read in for DB instertion.
@@ -212,15 +223,15 @@ def writeTB_FILES( outputFile, lines ):
         File = (sourceFile, )
         database.execute("""insert into tb_files values (NULL, ?)""", File)
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ninsertFile() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
 
 """
-writeTB_DEFINITIONNAME() writes specific information from the input file to tb_definitionNames in the seorigin db.
+insertDefinitionNames() writes specific information from the input file to tb_definitionNames in the seorigin db.
 """
-def writeTB_DEFINITIONNAMES( outputFile, lines ):
+def insertDefinitionNames( outputFile, lines ):
     try:
         skipCheck = False
         database = outputFile.cursor()
@@ -242,11 +253,75 @@ def writeTB_DEFINITIONNAMES( outputFile, lines ):
         defName = (definitionCall, )
         database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ninsertDefinitionNames() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
 
+"""
+insertinsertLabel() writes specific information from the input file to tb_label in the seorigin db.
+"""
+def insertLabel( outputFile, lines ):
+    try:
+        database = outputFile.cursor()
+        labelCheck = False
+        for line in lines:
+            if re.search('^.*\(', line):
+                labelCheck = True
+            elif re.search('[.*\)\n\)]', line):
+                labelCheck = False
+            # Checks for all labels calls, nothing more than that.
+            if labelCheck:
+                labels = re.sub('optional_policy.*$', '', line)
+                labels = re.sub('^if.*$', '', labels)
+                labels = re.sub('^\w*', '', labels)
+                labels = re.sub('[\(\)]', '', labels)
+                labels = re.sub('{.*}', '', labels)
+                labels = re.sub('[,, ]', ' ', labels)
+                labels = re.sub('[`\']', '', labels)
+                labels = re.sub('\n*', '', labels)
+                label = labels.split()
+                for lab in label:
+                    labelClass = 0
+                    if re.search('\".*\"', lab):
+                        labelClass = 2
+                    elif re.search('.*\_t$', lab):
+                        labelClass = 1
+                    l = (labelClass, lab)
+                    database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
+    except Exception as err:
+        print("\ninsertLabel() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
+
+"""
+insertinsertLabelSet() writes specific information from the input file to tb_labelset in the seorigin db.
+"""
+def insertLabelSet( outputFile, lines ):
+    try:
+        database = outputFile.cursor()
+        setCheck = False
+        for line in lines:
+            if re.search('^.*\(.*{', line):
+                labelSets = re.sub('^if.*$', '', line)
+                labelSets = re.sub('^.*\(', '', labelSets)
+                labelSets = re.sub('\)', '', labelSets)
+                labelSets = re.sub('\n', '', labelSets)
+                labelSet = labelSets.split(",")
+                for Set in labelSet:
+                    if re.search('{', Set):
+                        setCheck = True
+                    elif re.search('^\w*', Set):
+                        setCheck = False
+                    if setCheck:
+                        Set = re.sub('^ {', '{', Set)
+                        #print(Set)
+    except Exception as err:
+        print("\ninsertLabelSet() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
 """
 writeDefineDB( outputFile, output) grabs parsed output, and writes definition record data to SQLite3 database (output).
 """
@@ -280,15 +355,15 @@ def writeDefineDB( outputFile, lines ):
             define = [definitionCall, definition]
             #database.execute("""insert into tb_definition values (?,?)""", define)
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\nError: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
 
 """
-writeSourceDB( outputFile, output) grabs parsed output, and writes source record data to SQLite3 database (output).
+insertSource( outputFile, output) grabs parsed output, and writes source record data to SQLite3 database (output).
 """
-def writeSourceDB( outputFile, lines ):
+def insertSource( outputFile, lines ):
     try:
         database = outputFile.cursor()
         clean_source = cleanSource( lines )
@@ -320,7 +395,7 @@ def writeSourceDB( outputFile, lines ):
         database.execute("""insert into tb_files values (NULL, ?)""", File)
         database.execute("""insert into tb_source values (NULL, ?,?,?)""", source)
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("\ninsertSource() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
@@ -347,7 +422,7 @@ def writeOut( outputFile, output ):
     try:
         parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
     except Exception as err:
-        print("\n\nError: {0}".format(err),"\n\n")
+        print("\n\nwriteOut() Error: {0}".format(err),"\n\n")
         usage()
 
     parsedOut.write(output)
@@ -360,10 +435,13 @@ create and write the seorigin database.
 def seorigin( outputFile, lines ):
     try:
         createTables( outputFile )
-        writeTB_FILES( outputFile, lines )
-        writeTB_DEFINITIONNAMES(  outputFile, lines )
+        insertFile( outputFile, lines )
+        insertDefinitionNames(  outputFile, lines )
+        insertLabel( outputFile, lines )
+        insertLabelSet( outputFile, lines )
+        #insertSource( outputFile, lines )
     except Exception as err:
-        print("Error: {0}".format(err),"\n")
+        print("seorigin() Error: {0}".format(err),"\n")
         usage()
 
 """
@@ -373,7 +451,6 @@ def main():
     print("Workflow component v1.1.2: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
-    getStatementType( lines )
     seorigin( outputFile, lines )
 
 """
