@@ -133,7 +133,6 @@ def parseFile( lines ):
             sourceExpression = re.sub('^i$', '', sourceExpression)
             sourceExpression = re.sub('^if$', '', sourceExpression)
             sourceExpression = re.sub('\n', '', sourceExpression)
-            print(sourceExpression)
             sourceCall = re.sub('\(.*$', '', sourceExpression)
             sourceCallArgs = re.sub('^.*\(', '(', sourceExpression)
             # Greedily remove everything after line number and turn it into our source location
@@ -164,8 +163,7 @@ def parseFile( lines ):
             output += "# line: " + sourceLineNum
             output += "\n"
             output += sourceCall
-            output += "\n"
-            output += sourceCallArgs
+            output += "\n" + sourceCallArgs
             output += "\n"
            
 # End of the source record parsing. Beginning of the definition record parsing.
