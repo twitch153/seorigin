@@ -105,22 +105,9 @@ def parseFile( lines ):
     definitionLine = False
     gen_requireCheck = False
     sptMultiLineCheck = False
-    tunableCheck = False
-
     for line in lines:
 # Beginning of source record parsing.
         # Parse only if we have a .te line
-        tuneTest = re.sub(': \-\d+\-', '', line)               
-        if re.search('\.te:\d+ tunable_policy.*', tuneTest):
-            tunableCheck = True
-        elif re.search('\) \-> ', tuneTest):
-            tunableCheck = False
-        elif re.search('^\s+allow', tuneTest):
-            tunableCheck = False
-        if tunableCheck:
-            tuneTest = re.sub('.*,', '', tuneTest)
-            tuneTest = re.sub('\t', '', tuneTest)
-            tuneTest = re.sub('\n', '', tuneTest)
         if re.search('\.te:', line):
             multiLineCheck = False
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
@@ -165,22 +152,20 @@ def parseFile( lines ):
                     continue
                 else:
                     oldLine = currentLine
-            sourceLocation = re.sub(':\d+', '', sourceLocation)
-            sourceCount += 1
-            output += "\n"
-            output += "## source record "
-            output += str(sourceCount)  
-            output += "\n"
-            output += "# " + sourceLocation
-            output += "\n"
-            output += "# line: " + sourceLineNum
-            output += "\n"
-            if re.search('tunable_policy', line):
-                output += tuneTest
-            output += sourceCall
-            output += "\n" + sourceCallArgs
-            output += "\n"
-           
+            if not re.search('tunable_policy', line):
+                sourceLocation = re.sub(':\d+', '', sourceLocation)
+                sourceCount += 1
+                output += "\n"
+                output += "## source record "
+                output += str(sourceCount)  
+                output += "\n"
+                output += "# " + sourceLocation
+                output += "\n"
+                output += "# line: " + sourceLineNum
+                output += "\n"
+                output += sourceCall
+                output += "\n" + sourceCallArgs
+                output += "\n"
 # End of the source record parsing. Beginning of the definition record parsing.
         # Parse out only if we have an "all_interfaces.conf:" line
         if re.search('\m4trace:tmp/all_interfaces.conf:', line):
@@ -242,6 +227,7 @@ def parseFile( lines ):
             output += definition
             output += '\n'
         if re.search('\.spt:', line):
+            
             line = re.sub('^.*\- ', '', line)
             # SDC = .spt definition call
             SDC = re.sub('define\(', '', line)
