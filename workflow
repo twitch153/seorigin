@@ -39,10 +39,11 @@ def labelHelp():
         print("========\n")
         print("   Label classes: ")
         print("   ===============")
-        print("   Label classes are separate by three classes: type label, class label, and\n   string label.")
+        print("   Label classes are separate by five classes: type label, class label, and\n   string label.")
         print("   When inserting labels into SEorigin's database we consider the label class as\n   an integer.\n")
         print("   Integer types are as follows: ")
-        print("   0 = Type label\n   1 = String label\n   2 = Class Label")
+        print("   0 = Type label\n   1 = Object Label\n   2 = Privilege label")
+        print("   3 = String label\n   4 = Argument label\n")
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
 """
@@ -68,6 +69,7 @@ def parse_cmd_args():
         elif o in ['-h', '--help']:
             usage()
             labelHelp()
+            sys.exit()
 
 # Sanity check to make sure the parsed information is getting written to some location.
     if inputCheck:
@@ -265,27 +267,72 @@ def insertLabel( outputFile, lines ):
     try:
         database = outputFile.cursor()
         labelCheck = False
+        allowCheck = False
         for line in lines:
+            if re.search('^allow.*$', line):
+                allowCheck = True
+            elif re.search('^\n', line):
+                allowCheck = False
+            if allowCheck:
+                line = re.sub('^\s+', '', line)
+                labels = re.sub('allow ', '', line)
+                labels = re.sub('optional_policy.*$', '', labels)
+                labels = re.sub('tunable_policy.*$', '', labels)
+                labels = re.sub(':', ' ', labels)
+                labels = re.sub('dontaudit', '', labels)
+                labels = re.sub('\'', '', labels)
+                labels = re.sub('{.*}', '', labels)
+                labels = re.sub('^.*\(', '', labels)
+                labels = re.sub('\)', '', labels)
+                labels = re.sub(';', '', labels)
+                labels = re.sub(',', ' ', labels)
+                label = labels.split()
+                for lab in label:
+                    labelClass = 0
+                    if re.search('.*\_t$', lab):
+                        labelClass = 0
+                    elif re.search('.*_type$', lab):
+                        labelClass = 0
+                    elif re.search('.*_perms', lab):
+                        labelClass = 2
+                    elif re.search('\".*\"', lab):
+                        labelClass = 3
+                    elif re.search('^\$.', lab):
+                        labelClass = 4
+                    else:
+                        labelClass = 1
+                    l = (labelClass, lab)
+                    database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
             if re.search('^.*\(', line):
                 labelCheck = True
             elif re.search('[.*\)\n\)]', line):
                 labelCheck = False
             # Checks for all labels calls, nothing more than that.
             if labelCheck:
+                line = re.sub('^\s+', '', line)
                 labels = re.sub('optional_policy.*$', '', line)
+                labels = re.sub('tunable_policy.*$', '', labels)
+                labels = re.sub('genfscon.*$', '', labels)
                 labels = re.sub('^if.*$', '', labels)
                 labels = re.sub('^\w*', '', labels)
                 labels = re.sub('[\(\)]', '', labels)
                 labels = re.sub('{.*}', '', labels)
                 labels = re.sub('[,, ]', ' ', labels)
-                labels = re.sub('[`\']', '', labels)
                 labels = re.sub('\n*', '', labels)
                 label = labels.split()
                 for lab in label:
                     labelClass = 0
-                    if re.search('\".*\"', lab):
+                    if re.search('.*\_t$', lab):
+                        labelClass = 0
+                    elif re.search('.*_type$', lab):
+                        labelClass = 0
+                    elif re.search('.*_perms', lab):
                         labelClass = 2
-                    elif re.search('.*\_t$', lab):
+                    elif re.search('\".*\"', lab):
+                        labelClass = 3
+                    elif re.search('^\$.', lab):
+                        labelClass = 4
+                    else:
                         labelClass = 1
                     l = (labelClass, lab)
                     database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
@@ -448,7 +495,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens!Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.1.2: ")
+    print("Workflow component v1.1.3: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
