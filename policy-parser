@@ -105,10 +105,22 @@ def parseFile( lines ):
     definitionLine = False
     gen_requireCheck = False
     sptMultiLineCheck = False
+    tunableCheck = False
 
     for line in lines:
 # Beginning of source record parsing.
         # Parse only if we have a .te line
+        tuneTest = re.sub(': \-\d+\-', '', line)               
+        if re.search('\.te:\d+ tunable_policy.*', tuneTest):
+            tunableCheck = True
+        elif re.search('\) \-> ', tuneTest):
+            tunableCheck = False
+        elif re.search('^\s+allow', tuneTest):
+            tunableCheck = False
+        if tunableCheck:
+            tuneTest = re.sub('.*,', '', tuneTest)
+            tuneTest = re.sub('\t', '', tuneTest)
+            tuneTest = re.sub('\n', '', tuneTest)
         if re.search('\.te:', line):
             multiLineCheck = False
             line = re.sub('dnl.*$', '', line)    # Remove macro comments
@@ -123,10 +135,11 @@ def parseFile( lines ):
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
             sourceExpression = re.sub('^optional_policy.*', '', sourceExpression)
+            #sourceExpression = re.sub('^tunable_policy.*$', '', sourceExpression)
             sourceExpression = re.sub('^incr\(.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
             sourceExpression = re.sub('gen_tunable.*$', '', sourceExpression) # gen_tunable omitted from source records
-            sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression) 
+            sourceExpression = re.sub('incr\(\d+\)->\d+', '', sourceExpression)
             sourceExpression = re.sub('\->.*$', '', sourceExpression)
             sourceExpression = re.sub('_perms.*$', '', sourceExpression) 
             sourceExpression = re.sub('^.*regexp.*$', '', sourceExpression)
@@ -162,6 +175,8 @@ def parseFile( lines ):
             output += "\n"
             output += "# line: " + sourceLineNum
             output += "\n"
+            if re.search('tunable_policy', line):
+                output += tuneTest
             output += sourceCall
             output += "\n" + sourceCallArgs
             output += "\n"
@@ -300,7 +315,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.3.4: ")
+    print("Policy-parser v1.3.5: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
