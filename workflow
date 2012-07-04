@@ -117,6 +117,26 @@ def getStatementType( lines ):
     return statementValue
 
 """
+getLabelClass( labels ) read through the labels of the input and searches for each statement type and assigns
+a certain value to each label and then returns the value of the label.
+"""
+def getLabelClass( label ):
+    labelClass = 0
+    if re.search('.*\_t$', label):
+        labelClass = 0
+    elif re.search('.*_type$', label):
+        labelClass = 0
+    elif re.search('.*_perms', label):
+        labelClass = 2
+    elif re.search('\".*\"', label):
+        labelClass = 3
+    elif re.search('^\$.', label):
+        labelClass = 4
+    else:
+        labelClass = 1
+    return labelClass
+
+"""
 createTables( outputFile ) creates the necessary tables for the SQLite3 database
 """
 def createTables( outputFile ):
@@ -183,7 +203,6 @@ def cleanSource( lines ):
         cleanSource = []
         sourceCheck = False
         for line in lines:
-            #line = re.sub('## .*$', '', line) # Removes the ## <record type> record from input.
             line = re.sub('# line: ', '', line)# Removes "# line: " from input.
             if re.search('^## source', line):
                 sourceCheck = True
@@ -259,7 +278,6 @@ def insertDefinitionNames( outputFile, lines ):
         usage()
     outputFile.commit()
     database.close()
-
 """
 insertinsertLabel() writes specific information from the input file to tb_label in the seorigin db.
 """
@@ -288,26 +306,13 @@ def insertLabel( outputFile, lines ):
                 labels = re.sub(',', ' ', labels)
                 label = labels.split()
                 for lab in label:
-                    labelClass = 0
-                    if re.search('.*\_t$', lab):
-                        labelClass = 0
-                    elif re.search('.*_type$', lab):
-                        labelClass = 0
-                    elif re.search('.*_perms', lab):
-                        labelClass = 2
-                    elif re.search('\".*\"', lab):
-                        labelClass = 3
-                    elif re.search('^\$.', lab):
-                        labelClass = 4
-                    else:
-                        labelClass = 1
+                    labelClass = getLabelClass(lab)
                     l = (labelClass, lab)
                     database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
             if re.search('^.*\(', line):
                 labelCheck = True
             elif re.search('[.*\)\n\)]', line):
                 labelCheck = False
-            # Checks for all labels calls, nothing more than that.
             if labelCheck:
                 line = re.sub('^\s+', '', line)
                 labels = re.sub('optional_policy.*$', '', line)
@@ -321,19 +326,7 @@ def insertLabel( outputFile, lines ):
                 labels = re.sub('\n*', '', labels)
                 label = labels.split()
                 for lab in label:
-                    labelClass = 0
-                    if re.search('.*\_t$', lab):
-                        labelClass = 0
-                    elif re.search('.*_type$', lab):
-                        labelClass = 0
-                    elif re.search('.*_perms', lab):
-                        labelClass = 2
-                    elif re.search('\".*\"', lab):
-                        labelClass = 3
-                    elif re.search('^\$.', lab):
-                        labelClass = 4
-                    else:
-                        labelClass = 1
+                    labelClass = getLabelClass(lab)
                     l = (labelClass, lab)
                     database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
     except Exception as err:
@@ -495,7 +488,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens!Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.1.3: ")
+    print("Workflow component v1.1.4: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
