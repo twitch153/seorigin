@@ -308,7 +308,7 @@ def insertLabel( outputFile, lines ):
                 for lab in label:
                     labelClass = getLabelClass(lab)
                     l = (labelClass, lab)
-                    database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
+                    database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
             if re.search('^.*\(', line):
                 labelCheck = True
             elif re.search('[.*\)\n\)]', line):
@@ -328,7 +328,7 @@ def insertLabel( outputFile, lines ):
                 for lab in label:
                     labelClass = getLabelClass(lab)
                     l = (labelClass, lab)
-                    database.execute("""insert into tb_label values (NULL, ?, ?)""", l)
+                    database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
     except Exception as err:
         print("\ninsertLabel() Error: {0}".format(err),"\n")
         usage()
@@ -342,6 +342,8 @@ def insertLabelSet( outputFile, lines ):
     try:
         database = outputFile.cursor()
         setCheck = False
+        labelSetId = 0
+        cleanSet = ['']
         for line in lines:
             if re.search('^.*\(.*{', line):
                 labelSets = re.sub('^if.*$', '', line)
@@ -350,15 +352,39 @@ def insertLabelSet( outputFile, lines ):
                 labelSets = re.sub('\n', '', labelSets)
                 labelSet = labelSets.split(",")
                 for Set in labelSet:
-                    if re.search('{', Set):
-                        setCheck = True
-                    elif re.search('^\w*', Set):
-                        setCheck = False
-                    if setCheck:
-                        Set = re.sub('^ {', '{', Set)
-                        #print(Set)
+                    Set = re.sub('^\w*', '', Set)
+                    Set = re.sub('^ \w*', '', Set)
+                    Set = re.sub('^\$\d+.*$', '', Set)
+                    Set = re.sub('^ {', '{', Set)
+                    Set = re.sub('\n', '', Set)
+                    Set = re.sub('^ $', '', Set)
+                    if Set == '':
+                        continue
+                    cleanSet.append(Set) # Cleans the list of label sets which will be used to search for duplicates.
+        cleanSet = list(set(cleanSet)) # Makes the list without any duplicates.
+        for clean in cleanSet:
+            if clean == '':
+                continue
+            else:
+                labelSetId += 1
+           # database.execute('''insert into tb_labelSet values(?,?)''', labelSet)
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+    database.close()
+
+"""
+insertStatementDeclare()
+"""
+def insertStatementDeclare( outputFile, lines ):
+    try:
+        database = outputFile.cursor()
+        for line in lines:
+            print("Banana")        
+        database.execute('''insert into tb_Statement_Declare values(NULL,?,NULL,NULL)''', DeclarationClass)
+    except Exception as err:
+        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
