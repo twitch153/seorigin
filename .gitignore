@@ -1,5 +1,5 @@
 debug.log
-parsedOutput.txt
+parsed_output.txt
 *.pp
 refpolicy/tmp/
-record_database
+seorigin

@@ -202,7 +202,7 @@ def parseFile( lines ):
             definition = re.sub('\n', '', definition)
             definition = re.sub('\t', '', definition)
             definition = re.sub('^\)', '', definition)
-            definition = re.sub('^\'\)', '', definition)
+            definition = re.sub('^\'\).*$', '', definition)
             if re.search('^\w*$', definition):
                 continue
 
@@ -298,7 +298,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.3.8: ")
+    print("Policy-parser v1.4: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
