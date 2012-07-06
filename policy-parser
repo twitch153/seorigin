@@ -115,14 +115,12 @@ def parseFile( lines ):
             line = re.sub(': \-\d+\-', '', line)
             # Take line and break the parts after the file location into the source expression
             sourceExpression = re.sub('^.*\d+ ', '',line)
-            #sourceExpression = re.sub('\s', '', sourceExpression) # Remove all white space in the line
             sourceExpression = re.sub('^policy.*$', '', sourceExpression)
             sourceExpression = re.sub('[ififn]def.*$', '', sourceExpression)
             sourceExpression = re.sub('ifelse.*$', '', sourceExpression)
             sourceExpression = re.sub('pushdef.*$', '', sourceExpression)
             sourceExpression = re.sub('popdef.*$', '', sourceExpression)
             sourceExpression = re.sub('^optional_policy.*', '', sourceExpression)
-            #sourceExpression = re.sub('^tunable_policy.*$', '', sourceExpression)
             sourceExpression = re.sub('^incr\(.*$', '', sourceExpression)
             sourceExpression = re.sub('gen_require.*$', '', sourceExpression) 
             sourceExpression = re.sub('gen_tunable.*$', '', sourceExpression) # gen_tunable omitted from source records
@@ -185,8 +183,8 @@ def parseFile( lines ):
             # Bypasses any .fc files.
             if re.search('\.fc:.*$', line):
                 continue
-
-            definition = re.sub('^.*\- ', '', line)
+            definition = re.sub('\#.*$', '', line)
+            definition = re.sub('^.*\- ', '', definition)
             definition = re.sub('divert\(-1\)','', definition)
             definition = re.sub('^.dnl*.$', '', definition)
             definition = re.sub('pushdef.*$', '', definition)
@@ -194,8 +192,6 @@ def parseFile( lines ):
             definition = re.sub('gen_tunable.*$', '', definition) # gen_tunable is omitted from all_interfaces.conf
             definition = re.sub('refpolicywarn.*$', '', definition)
             definition = re.sub('policy_m4_comment.*$', '', definition)
-            if re.search('#.*$', definition):
-                continue
 
             if re.search('gen_require\(\`.*$', definition):
                 gen_requireCheck = True
@@ -301,7 +297,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.3.5: ")
+    print("Policy-parser v1.3.7: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
