@@ -97,6 +97,62 @@ def readInput( inputFile ):
     return fileLines
 
 """
+getLabels( line ) gets the labels from a specific line and returns the labels parsed out from the line as a list of
+the labels of that line.
+"""
+def getLabels( line ):
+    try:
+        labels = ''
+        statementCheck = False
+        interfaceCheck = False
+        if getStatementType(line) == 0:
+            statementCheck = True
+        elif getStatementType(line) == 2:
+            statementCheck = True
+        elif getStatementType(line) == 3:
+            statementCheck = True
+        elif getStatementType(line) == 4:
+            statementCheck = True
+        elif re.search('^\n', line):
+            statementCheck = False
+
+        if re.search('^.*\(', line):
+            interfaceCheck = True
+        elif re.search('[.*\)\n\)]', line):
+            labelCheck = False
+
+        if statementCheck:
+            line = re.sub('^\s+', '', line)
+            labels = re.sub('^\w+ ', '', line)
+            labels = re.sub('optional_policy.*$', '', labels)
+            labels = re.sub('tunable_policy.*$', '', labels)
+            labels = re.sub(':', ' ', labels)
+            labels = re.sub('dontaudit', '', labels)
+            labels = re.sub('\'', '', labels)
+            labels = re.sub('{.*}', '', labels)
+            labels = re.sub('^.*\(', '', labels)
+            labels = re.sub('\)', '', labels)
+            labels = re.sub(';', '', labels)
+            labels = re.sub(',', ' ', labels)
+
+        if interfaceCheck:
+            line = re.sub('^\s+', '', line)
+            labels = re.sub('optional_policy.*$', '', line)
+            labels = re.sub('tunable_policy.*$', '', labels)
+            labels = re.sub('genfscon.*$', '', labels)
+            labels = re.sub('^if.*$', '', labels)
+            labels = re.sub('^\w*', '', labels)
+            labels = re.sub('[\(\)]', '', labels)
+            labels = re.sub('{.*}', '', labels)
+            labels = re.sub('[,, ]', ' ', labels)
+            labels = re.sub('\n*', '', labels)
+
+        labels = labels.split()
+        return labels
+    except Exception as err:
+        print("\ngetlabels() Error: {0}".format(err),"\n")
+
+"""
 getStatementType( lines ) read through the lines of the input and searches for each statement type and assigns
 a certain value to each statement and then returns the value of the statement.
 """
@@ -295,26 +351,25 @@ def insertFile( outputFile, lines ):
             if re.search('^## ', source):
                 sourceFile = sourceStanza[1]
                 File = (sourceFile, )
-                database.execute('''select ? from tb_files''', File)
-                for F in File:
-                    postPopCheck = database.fetchone()
-                    if postPopCheck == None:
-                        continue
-                    elif F in postPopCheck:
-                        print(postPopCheck)
-                    if not re.search('^\-', F):     
-                        database.execute("""insert into tb_files values (NULL, ?)""", File)
+                database.execute('''select * from tb_files where Filename = ?''', File)
+                postPopCheck = database.fetchone()
+                if postPopCheck == None:
+                    for F in File:
+                        if not re.search('^\-', F):     
+                            database.execute("""insert into tb_files values (NULL, ?)""", File)
+                else:
+                    pass
                 sourceStanza = []
             sourceStanza.append(source)
         # The final source record is not listed in the for-loop above so we add it in after.
         sourceFile = sourceStanza[1]
         File = (sourceFile, )
-        database.execute('''select ? from tb_files''', File)
-        postPopCheck = database.fetchall()
-        if File in postPopCheck:
-            return
+        database.execute('''select * from tb_files where Filename = ?''', File)
+        postPopCheck = database.fetchone()
+        if postPopCheck == None:
+            database.execute("""insert into tb_files values (NULL, ?)""", File)           
         else:
-            database.execute("""insert into tb_files values (NULL, ?)""", File)
+            pass
     except Exception as err:
         print("\ninsertFile() Error: {0}".format(err),"\n")
         usage()
@@ -336,76 +391,30 @@ def insertDefinitionNames( outputFile, lines ):
             if re.search('^## ', define):
                 definitionCall = defineStanza[1]
                 defName = (definitionCall, )
-                for Name in defName:
-                    if not re.search('^@', Name):
-                        database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+                database.execute('''select * from tb_definitionNames where DefinitionName = ?''', defName)
+                postPopCheck = database.fetchone()
+                if postPopCheck == None:
+                    for Name in defName:
+                        if not re.search('^@', Name):
+                            database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+                    else:
+                        pass
                 defineStanza = [] 
             defineStanza.append(define)
         # The final source record is not listed in the for-loop above so we add it in after.
         definitionCall = defineStanza[1]
         defName = (definitionCall, )
-        database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+        database.execute('''select * from tb_definitionNames where DefinitionName = ?''', defName)
+        postPopCheck = database.fetchone()
+        if postPopCheck == None:
+            database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
+        else:
+            pass
     except Exception as err:
         print("\ninsertDefinitionNames() Error: {0}".format(err),"\n")
         usage()
     outputFile.commit()
     database.close()
-
-"""
-getLabels( line ) gets the labels from a specific line and returns the labels parsed out from the line as a list of
-the labels of that line.
-"""
-def getLabels( line ):
-    try:
-        labels = ''
-        statementCheck = False
-        interfaceCheck = False
-        if getStatementType(line) == 0:
-            statementCheck = True
-        elif getStatementType(line) == 2:
-            statementCheck = True
-        elif getStatementType(line) == 3:
-            statementCheck = True
-        elif getStatementType(line) == 4:
-            statementCheck = True
-        elif re.search('^\n', line):
-            statementCheck = False
-
-        if re.search('^.*\(', line):
-            interfaceCheck = True
-        elif re.search('[.*\)\n\)]', line):
-            labelCheck = False
-
-        if statementCheck:
-            line = re.sub('^\s+', '', line)
-            labels = re.sub('^\w+ ', '', line)
-            labels = re.sub('optional_policy.*$', '', labels)
-            labels = re.sub('tunable_policy.*$', '', labels)
-            labels = re.sub(':', ' ', labels)
-            labels = re.sub('dontaudit', '', labels)
-            labels = re.sub('\'', '', labels)
-            labels = re.sub('{.*}', '', labels)
-            labels = re.sub('^.*\(', '', labels)
-            labels = re.sub('\)', '', labels)
-            labels = re.sub(';', '', labels)
-            labels = re.sub(',', ' ', labels)
-
-        if interfaceCheck:
-            line = re.sub('^\s+', '', line)
-            labels = re.sub('optional_policy.*$', '', line)
-            labels = re.sub('tunable_policy.*$', '', labels)
-            labels = re.sub('genfscon.*$', '', labels)
-            labels = re.sub('^if.*$', '', labels)
-            labels = re.sub('^\w*', '', labels)
-            labels = re.sub('[\(\)]', '', labels)
-            labels = re.sub('{.*}', '', labels)
-            labels = re.sub('[,, ]', ' ', labels)
-            labels = re.sub('\n*', '', labels)
-
-        labels = labels.split()
-        return labels
-    except Exception as err:
-        print("\ngetlabels() Error: {0}".format(err),"\n")
 
 """
 insertLabel() writes specific information from the input file to tb_label in the seorigin db.
@@ -417,8 +426,16 @@ def insertLabel( outputFile, lines ):
             labels = getLabels(line)
             for label in labels:
                 labelClass = getLabelClass(label)
+                labelCheck = (label, )
+                database.execute('''select * from tb_label where Name = ?''', labelCheck)
                 l = (labelClass, label)
-                database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
+                # Goes through each row in the database for the specific data and checks it against
+                # the database, if it returns: "None" then insert the data.
+                postPopCheck = database.fetchone()
+                if postPopCheck == None:
+                    database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
+                else:
+                    pass
     except Exception as err:
         print("\ninsertLabel() Error: {0}".format(err),"\n")
         usage()
@@ -450,13 +467,6 @@ def insertLabelSet( outputFile, lines ):
                     Set = re.sub('^ $', '', Set)
                     if Set == '':
                         continue
-                    cleanSet.append(Set) # Cleans the list of label sets which will be used to search for duplicates.
-        cleanSet = list(set(cleanSet)) # Makes the list without any duplicates.
-        for clean in cleanSet:
-            if clean == '':
-                continue
-            else:
-                labelSetId += 1
             #database.execute('''insert into tb_labelSet values(?,?)''', labelSetId)
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err),"\n")
@@ -622,7 +632,8 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens!Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.1.5: ")
+    print("Workflow component v1.1.6: \n")
+    print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
