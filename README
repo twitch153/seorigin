@@ -53,6 +53,10 @@ Testing
  1.) Make a debug.log by creating a policy package - "make <policy>.pp" in the refpolicy folder.
  2.) Grab input from debug.log with policy parser script - "python policy-parser -i <directory of file> -o <desired output location>
 
+Note
+----
+
+In order to find the label class of class labels and permission labels two separate files called "SELinux Class List" and "SELinux Perms list". If for any reason these change with an update to SELinux or you add your own perms and classes and would like seorigin to classify them as such then you must add them to these files.
 
 Contributors
 ------------
