@@ -491,9 +491,15 @@ insertLabel() writes specific information from the input file to tb_label in the
 def insertLabel( outputFile, lines, classList, permsList ):
     try:
         database = outputFile.cursor()
+        selfCheck = ''
         for line in lines:
             labels = labelsToList(line)
             for label in labels:
+                currentLabel = label
+                if currentLabel == 'self':
+                    label = selfCheck
+                else:
+                    selfCheck = currentLabel
                 labelClass = getLabelClass(label, classList, permsList)
                 labelCheck = (label, )
                 database.execute('''select * from tb_label where Name = ?''', labelCheck)
@@ -520,6 +526,11 @@ def insertLabelSet( outputFile, lines, classList, permsList):
         for line in lines:
             labelSet = labelSetToList(line)
             for label in labelSet:
+                currentLabel = label
+                if currentLabel == 'self':
+                    label = selfCheck
+                else:
+                    selfCheck = currentLabel
                 labelClass = getLabelClass(label, classList, permsList)
                 labelCheck = (label, )
                 database.execute('''select * from tb_label where Name = ?''', labelCheck)
