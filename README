@@ -58,6 +58,26 @@ Note
 
 In order to find the label class of class labels and permission labels two separate files called "SELinux Class List" and "SELinux Perms list". If for any reason these change with an update to SELinux or you add your own perms and classes and would like seorigin to classify them as such then you must add them to these files.
 
+Debugging
+---------
+
+To debug in the workflow component one can make use of the writeOut() function.
+
+	To debug: 
+	---------
+	In any function():
+	create string output = '' at beginning of function
+	Assign whatever variable you would like as output += <variable>
+	at the end of the function be sure to return output.
+
+	In main():
+	use function writeOut( outputFile, output )
+	outputFile being the location of where you would like the file to be located.
+
+This will write the output of the parsing to where you would like it to be located.
+
+ex.) writeOut('/home/twitch153/seorigin/debug.txt', output)
+
 Contributors
 ------------
 
