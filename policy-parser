@@ -189,6 +189,7 @@ def parseFile( lines ):
             definition = re.sub('^.dnl*.$', '', definition)
             definition = re.sub('pushdef.*$', '', definition)
             definition = re.sub('popdef.*$', '', definition)
+            definition = re.sub('tunable_policy.*', '', definition)
             definition = re.sub('optional_policy.*', '', definition)
             definition = re.sub('gen_tunable.*$', '', definition) # gen_tunable is omitted from all_interfaces.conf
             definition = re.sub('refpolicywarn.*$', '', definition)
@@ -298,7 +299,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.4: ")
+    print("Policy-parser v1.4.1: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
