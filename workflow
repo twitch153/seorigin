@@ -39,11 +39,25 @@ def labelHelp():
         print("========\n")
         print("   Label classes: ")
         print("   ===============")
-        print("   Label classes are separate by five classes: type label, class label, and\n   string label.")
+        print("   Label classes are separate by seven classes: ")
+        print("   type label, class label, string label, attribute label, ")
+        print("   privilege label, argument label, and role label.\n")
         print("   When inserting labels into SEorigin's database we consider the label class as\n   an integer.\n")
-        print("   Integer types are as follows: ")
+        print("   Label integer types are as follows: ")
         print("   1 = Type label\n   2 = Attribute Label\n   3 = Classes label\n   4 = Privilege label")
         print("   5 = String/File label\n   6 = Argument label\n   7 = Role label\n")
+def statementHelp():
+        print("Statements: ")
+        print("===========\n")
+        print("   Statement classes: ")
+        print("   ===================")
+        print("   Statement classes are separate by four classes: ")
+        print("   rule statements, interface statements, assign statements, and\n   declare statements.\n")
+        print("   When searching for statements types throughout the parsed output we consider")
+        print("   the statement class as an integer.\n")
+        print("   Statement integer types are as follows: ")
+        print("   0 = Rule statement\n   1 = Interface statement\n   2 = Assign statement\n   3 = Declare statement")
+
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
 """
@@ -56,7 +70,7 @@ def parse_cmd_args():
     inputCheck = True    # Boolean check to see if input location has been set.
     outputCheck = True   # Boolean check to see if output location has been set.
     defInFile = os.path.join(os.environ["PWD"], 'parsed_output.txt') # Default input location.
-    defOutFile = os.path.join(os.environ["PWD"], 'seorigin') # Default output location.
+    defOutFile = os.path.join(os.environ["PWD"], 'seorigin.db') # Default output location.
 
     #Set up arguement flags for script execution.
     for o, p in opts:
@@ -67,8 +81,11 @@ def parse_cmd_args():
             outputFile = sqlite3.connect(p)
             outputCheck=False
         elif o in ['-h', '--help']:
+            print("\n")
             usage()
+            print("\n")
             labelHelp()
+            statementHelp()
             sys.exit()
 
 # Sanity check to make sure the parsed information is getting written to some location.
@@ -108,29 +125,87 @@ def getStatementType( line ):
         pass
     elif re.search('^}', line):
         pass
-    elif re.search('tunable_policy', line):
-        pass
     elif re.search('^{', line):
         pass
+    elif re.search('\',`', line):
+        pass
+    # Checks for rule calls
     elif re.search('^allow', line):
         statementValue = 0
-    # Checks for all interface calls"
+    elif re.search('^type_.*', line):
+        statementValue = 0
+    elif re.search('^dontaudit', line):
+        statementValue = 0
+    elif re.search('^auditallow', line):
+        statementValue = 0
+    elif re.search('^range_transition', line):
+        statementValue = 0
+    # Checks for interface calls
     elif re.search('^.*\(', line):
         statementValue = 1
-    elif re.search('^typeattribute', line):
+    # Checks for assign calls
+    elif re.search('^.*attribute', line):
         statementValue = 2
-    elif re.search('^dontaudit', line):
-        statementValue = 3
+    elif re.search('^typealias', line):
+        statementValue = 2
+    elif re.search('^class', line):
+        statementValue = 2
+    # Checks for declaration calls
     elif re.search('type .*', line):
-        statementValue = 4
+        statementValue = 3
     elif re.search('types .*', line):
-        statementValue = 4
+        statementValue = 3
     elif re.search('role .*', line):
-        statementValue = 4
+        statementValue = 3
     else:
         pass
         #print('Unknown line: ' + line)
     return statementValue
+
+"""
+getFileName() goes through a source record and returns the file name.
+"""
+def getFileName( record ):
+    sourceFile = ''
+    if re.search('^\w+/.*$', record):
+       sourceFile = record
+    return sourceFile
+
+"""
+getDefinitionName() goes through a definition record and returns the definition name.
+"""
+def getDefinitionName( record ):
+    definitionName = ''
+    if re.search('^# ', record):
+        record = re.sub('^# ', '', record)
+        definitionName = record
+    return definitionName
+
+"""
+getSourceLine() detects the source line of a source record, parses it out using regular expressions, then returns it.
+"""
+def getSourceLine( record ):
+    recordLine = ''
+    sourceCheck = False
+    if re.search('^## source.*$', record):
+        sourceCheck = True
+    elif re.search('^\w*.*$', record):
+        sourceCheck = True
+    elif re.search('^\n', record):
+        sourceCheck = False
+    if sourceCheck:
+        record = re.sub('^## source.*$', '', record)
+        record = re.sub('^# .*$', '', record)
+    return record
+"""
+getLineNumber() goes through a source record and returns the line number.
+"""
+def getLineNumber( record ):
+    LineNum = ''
+    if re.search('^# line: ', record):
+        record = re.sub('^# line: ', '', record)
+        LineNum = record
+    return LineNum
 
 """
 labelsToList( line ) gets the labels from a specific line and returns the labels parsed out from the line as a list of
@@ -138,7 +213,6 @@ the labels of that line.
 """
 def labelsToList( line ):
     try:
-
         labels = ''
         statementCheck = False
         interfaceCheck = False
@@ -215,10 +289,11 @@ def labelSetToList( line ):
             for Set in labelSet:
                 Set = re.sub('^\w*', '', Set)
                 Set = re.sub('^ \w*', '', Set)
-                Set = re.sub('^\$\d+.*$', '', Set)
                 if re.search('~{', Set):
+                    Set = re.sub('^\$\d+.*~{', '~{', Set)
                     Set = re.sub('.*~{', '~{', Set)
                 else:
+                    Set = re.sub('^\$\d+.*{', '{', Set)
                     Set = re.sub('.*{', '{', Set)
                 Set = re.sub('}.*$', '}', Set)
                 Set = re.sub('\n', '', Set)
@@ -286,10 +361,10 @@ def createTables( outputFile ):
         database = outputFile.cursor() 
         database.execute('''PRAGMA foreign_keys=OFF''')   
         database.execute('''create table if not exists tb_files
-        (FileID Integer primary key AUTOINCREMENT, Filename text)''')
+        (FileId Integer primary key AUTOINCREMENT, Filename text)''')
 
         database.execute('''create table if not exists tb_files
-        (FileID Integer primary key AUTOINCREMENT, Filename text)''')
+        (FileId Integer primary key AUTOINCREMENT, Filename text)''')
 
         database.execute('''create table if not exists tb_definitionNames 
         (DefinitionId Integer primary key AUTOINCREMENT NOT NULL, DefinitionName 
@@ -300,7 +375,7 @@ def createTables( outputFile ):
         Name Text NOT NULL)''')
 
         database.execute('''create table if not exists tb_labelSet
-        (LabelSetId Integer NOT NULL, LabelId NOT NULL, primary key(LabelSetID, LabelID),
+        (Modifier Integer NOT NULL, LabelSetId Integer NOT NULL, LabelId NOT NULL, primary key(LabelSetID, LabelId),
         foreign key(LabelId) references tb_label(LabelId))''')
 
         database.execute('''create table if not exists tb_statement_declare 
@@ -308,7 +383,7 @@ def createTables( outputFile ):
         TargetId Integer NOT NULL, AliasId Integer, foreign key(TargetId) references tb_labelSet(LabelSetId), 
         foreign key(AliasId) references tb_LabelSet(LabelSetId))''')
 
-        database.execute('''create table if not exists tb_statement_allow
+        database.execute('''create table if not exists tb_statement_rule
         (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, SourceId INTEGER NOT NULL, 
         SourceModifier INTEGER NOT NULL, TargetId INTEGER NOT NULL, TargetModifier INTEGER NOT NULL, 
         ClassesId INTEGER NOT NULL, ClassesModifier INTEGER NOT NULL, PrivilegeId INTEGER NOT NULL, 
@@ -369,7 +444,7 @@ def cleanDefine( lines ):
             elif re.search('^\n', line):
                     defineCheck = False
             if defineCheck:
-                line = re.sub('^# ', '', line)
+                #line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
                 line = re.sub('\n', '', line)
@@ -389,13 +464,13 @@ def cleanSource( lines ):
         cleanSource = []
         sourceCheck = False
         for line in lines:
-            line = re.sub('# line: ', '', line)# Removes "# line: " from input.
+            #line = re.sub('# line: ', '', line)# Removes "# line: " from input.
             if re.search('^## source', line):
                 sourceCheck = True
             elif re.search('^\n', line):
                 sourceCheck = False
             if sourceCheck:
-                line = re.sub('^# ', '', line)
+                #line = re.sub('^# ', '', line)
                 if line == '\n':
                     continue
                 line = re.sub('\n', '', line)
@@ -409,36 +484,22 @@ def cleanSource( lines ):
 """
 insertFile() writes specific information from the input file to tb_files in the seorigin db.
 """
-def insertFile( outputFile, lines ):
+def insertFile( outputFile, sourceFile ):
     try:
+        fileId = 0
         database = outputFile.cursor()
-        # Takes the lines from the input and "cleans" them to be read in for DB instertion.
-        clean_source = cleanSource( lines )
-        # Makes the first defineStanza some impossible values that wouldn't be in the beginning of a source record.
-        sourceStanza = ['-', '-', '-', '-', '-']
-        for source in clean_source:
-            if re.search('^## ', source):
-                sourceFile = sourceStanza[1]
-                File = (sourceFile, )
-                database.execute('''select * from tb_files where Filename = ?''', File)
-                postPopCheck = database.fetchone()
-                if postPopCheck == None:
-                    for F in File:
-                        if not re.search('^\-', F):     
-                            database.execute("""insert into tb_files values (NULL, ?)""", File)
-                else:
-                    pass
-                sourceStanza = []
-            sourceStanza.append(source)
-        # The final source record is not listed in the for-loop above so we add it in after.
-        sourceFile = sourceStanza[1]
-        File = (sourceFile, )
-        database.execute('''select * from tb_files where Filename = ?''', File)
-        postPopCheck = database.fetchone()
-        if postPopCheck == None:
-            database.execute("""insert into tb_files values (NULL, ?)""", File)           
-        else:
+        if sourceFile == '':
             pass
+        else:
+            File = (sourceFile, )
+            database.execute('''select * from tb_files where Filename = ?''', File)
+            postPopCheck = database.fetchone()
+            if postPopCheck == None:    
+                database.execute('''insert into tb_files values (NULL, ?)''', File)
+            else:
+                database.execute('''select fileId from tb_files where Filename = ?''', File)
+                fileId = database.fetchone()
+        return fileId
     except Exception as err:
         print("\ninsertFile() Error: {0}".format(err),"\n")
         usage()
@@ -448,37 +509,19 @@ def insertFile( outputFile, lines ):
 """
 insertDefinitionNames() writes specific information from the input file to tb_definitionNames in the seorigin db.
 """
-def insertDefinitionNames( outputFile, lines ):
+def insertDefinitionName( outputFile, definitionCall ):
     try:
-        skipCheck = False
         database = outputFile.cursor()
-        # Takes the lines from the input and "cleans" them to be read in for DB instertion.
-        clean_define = cleanDefine( lines )
-        # Makes the first defineStanza some impossible values. 
-        defineStanza = ['@', '@', '@']
-        for define in clean_define:
-            if re.search('^## ', define):
-                definitionCall = defineStanza[1]
-                defName = (definitionCall, )
-                database.execute('''select * from tb_definitionNames where DefinitionName = ?''', defName)
-                postPopCheck = database.fetchone()
-                if postPopCheck == None:
-                    for Name in defName:
-                        if not re.search('^@', Name):
-                            database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
-                    else:
-                        pass
-                defineStanza = [] 
-            defineStanza.append(define)
-        # The final source record is not listed in the for-loop above so we add it in after.
-        definitionCall = defineStanza[1]
-        defName = (definitionCall, )
-        database.execute('''select * from tb_definitionNames where DefinitionName = ?''', defName)
-        postPopCheck = database.fetchone()
-        if postPopCheck == None:
-            database.execute("""insert into tb_definitionNames values (NULL,?)""", defName)
-        else:
+        if definitionCall == '':
             pass
+        else:
+            defName = (definitionCall, )
+            database.execute('''select * from tb_definitionNames where DefinitionName = ?''', defName)
+            postPopCheck = database.fetchone()
+            if postPopCheck == None:
+                database.execute('''insert into tb_definitionNames values (NULL,?)''', defName)
+            else:
+                pass
     except Exception as err:
         print("\ninsertDefinitionNames() Error: {0}".format(err),"\n")
         usage()
@@ -488,29 +531,20 @@ def insertDefinitionNames( outputFile, lines ):
 """
 insertLabel() writes specific information from the input file to tb_label in the seorigin db.
 """
-def insertLabel( outputFile, lines, classList, permsList ):
+def insertLabel( outputFile, label, classList, permsList ):
     try:
         database = outputFile.cursor()
-        selfCheck = ''
-        for line in lines:
-            labels = labelsToList(line)
-            for label in labels:
-                currentLabel = label
-                if currentLabel == 'self':
-                    label = selfCheck
-                else:
-                    selfCheck = currentLabel
-                labelClass = getLabelClass(label, classList, permsList)
-                labelCheck = (label, )
-                database.execute('''select * from tb_label where Name = ?''', labelCheck)
-                l = (labelClass, label)
-                # Goes through each row in the database for the specific data and checks it against
-                # the database, if it returns: "None" then insert the data.
-                postPopCheck = database.fetchone()
-                if postPopCheck == None:
-                    database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
-                else:
-                    pass
+        labelClass = getLabelClass(label, classList, permsList)
+        labelCheck = (label, )
+        database.execute('''select * from tb_label where Name = ?''', labelCheck)
+        l = (labelClass, label)
+        # Goes through each row in the database for the specific data and checks it against
+        # the database, if it returns: "None" then insert the data.
+        postPopCheck = database.fetchone()
+        if postPopCheck == None:
+            database.execute('''insert into tb_label values (NULL, ?, ?)''', l)
+        else:
+            pass
     except Exception as err:
         print("\ninsertLabel() Error: {0}".format(err),"\n")
         usage()
@@ -520,27 +554,22 @@ def insertLabel( outputFile, lines, classList, permsList ):
 """
 insertLabelSet() writes specific information from the input file to tb_labelset in the seorigin db.
 """
-def insertLabelSet( outputFile, lines, classList, permsList):
+def insertLabelSet( outputFile, modifier, label, classList, permsList):
     try:
         database = outputFile.cursor()
-        for line in lines:
-            labelSet = labelSetToList(line)
-            for label in labelSet:
-                currentLabel = label
-                if currentLabel == 'self':
-                    label = selfCheck
-                else:
-                    selfCheck = currentLabel
-                labelClass = getLabelClass(label, classList, permsList)
-                labelCheck = (label, )
-                database.execute('''select * from tb_label where Name = ?''', labelCheck)
-                l = (labelClass, label)
-                postPopCheck = database.fetchone()
-                if postPopCheck == None:
-                    database.execute('''insert into tb_label values(NULL, ?, ?)''', l)
-                else:
-                    pass
-            #database.execute('''insert into tb_labelSet values(?,?)''', labelSetId)
+        insertLabel( outputFile, label, classList, permsList)
+        label = (label, )
+        database.execute('''select labelId from tb_label where Name = ?''', label)
+        labelId = database.fetchone()
+        database.execute('''select labelSetId from tb_labelSet where labelSetId = ?''', labelId)
+        labelSetId = database.fetchone()
+        if labelSetId == None:
+            database.execute('''select max(labelSetId)+1 from tb_labelSet''')
+            labelSetId = database.fetchone()
+            test = (modifier, labelSetId, labelId)
+            #TODO: Get LabelSetId to become insertable into tb_labelSet <-- Top priority.
+            #database.execute('''insert into tb_labelSet values (?, ?, ?)''', test)
+
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err),"\n")
         usage()
@@ -548,31 +577,109 @@ def insertLabelSet( outputFile, lines, classList, permsList):
     database.close()
 
 """
-insertStatementDeclare()
+insertAllLabels() goes through the list of labels given to it then inserts it into the seorigin db.
+Temp function. As the workflow evolves it will be deleted.
 """
-def insertStatementTables( outputFile, lines ):
+def insertAllLabels( outputFile, line, classList, permsList ):
+    try:
+        selfCheck = ''
+        modifier = 0
+        labelSetId = 1
+        labels = labelsToList( line )
+        labelSet = labelSetToList( line )
+        for label in labels:
+            currentLabel = label
+            if currentLabel == 'self':
+                label = selfCheck
+            else:
+                selfCheck = currentLabel
+            insertLabel( outputFile, label, classList, permsList )
+        for Set in labelSet:
+            if re.search('~', Set):
+                Set = re.sub('~', '', Set)
+                modifier = 1
+            currentLabel = Set
+            if currentLabel == 'self':
+               Set = selfCheck
+            else:
+                selfCheck = currentLabel
+            if Set == '':
+                pass
+            else:
+                insertLabelSet( outputFile, modifier, Set, classList, permsList)
+    except Exception as err:
+        print("\ninsertLabelSet() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+
+def insertStatementRule( outputFile, line ):
     try:
         database = outputFile.cursor()
-        for line in lines:
-            if re.search('^\n', line):
-                continue
-            StatementType = getStatementType(line)
-            # If we find an allow statement
-            if StatementType == 0:
-                pass
-            # If we find an interface call
-            if StatementType == 1:
-                pass
-            # If we find a typeattribute statement
-            if StatementType == 2:
-                pass
-            # If we find a dontaudit statement
-            if StatementType == 3:
-                pass
-            # If we find a declaration
-            if StatementType == 4:
-                pass
-                #database.execute('''insert into tb_Statement_Declare values(NULL,?,NULL,NULL)''', DeclarationClass)
+        #database.execute('''insert into tb_statement_rule values (NULL, ?, ?, NULL, NULL, NULL)''', source)
+        pass
+    except Exception as err:
+        print("\ninsertStatementRule() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+
+def insertStatementAssign( outputFile, line ):
+    try:
+        database = outputFile.cursor()
+        #database.execute('''insert into tb_statement_assign values (NULL, ?, ?, NULL, NULL, NULL)''', source)
+        pass
+    except Exception as err:
+        print("\ninsertStatementAssign() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+
+def insertStatementInterface( outputFile, line ):
+    try:
+        database = outputFile.cursor()
+        #database.execute('''insert into tb_statement_interface values (NULL, ?, ?, NULL, NULL, NULL)''', source)
+        pass
+    except Exception as err:
+        print("\ninsertStatementInterface() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+
+def insertStatementDeclare( outputFile, line ):
+    try:
+        database = outputFile.cursor()
+        #database.execute('''insert into tb_statement_declare values (NULL, ?, ?, ?)''', source)
+        #database.execute('''select StatementId from tb_statement''')
+        #return StatementId
+        pass
+    except Exception as err:
+        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
+        usage()
+    outputFile.commit()
+
+"""
+insertStatement()
+"""
+def insertStatement( outputFile, statementType ):
+    try:
+        database = outputFile.cursor()
+         # If we find a rule statement
+        if statementType == 0:
+            pass
+            #insertStatementRule()
+            
+        # If we find an interface call
+        elif statementType == 1:
+            #insertStatementInterface()
+            #database.execute('''insert into tb_statement_interface values (NULL, ?, NULL, ?, NULL, NULL)''', source)
+            pass
+        # If we find an assignation statement
+        elif statementType == 2:
+            pass
+            #insertStatementAssign()
+            #database.execute('''insert into tb_statement_assign values (NULL, ?, NULL, NULL, ?, NULL)''', source)
+        # If we find a declaration
+        elif statementType == 3:
+            pass
+            #inStatementDeclare()
+            #database.execute('''insert into tb_statement_declare values(NULL,?,NULL,NULL)''', DeclarationClass)
     except Exception as err:
         print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
         usage()
@@ -617,62 +724,8 @@ def writeDefineDB( outputFile, lines ):
     database.close()
 
 """
-insertSource( outputFile, output) grabs parsed output, and writes source record data to SQLite3 database (output).
-"""
-def insertSource( outputFile, lines ):
-    try:
-        database = outputFile.cursor()
-        clean_source = cleanSource( lines )
-        # Makes the first defineStanza some impossible values that wouldn't be in the beginning of a source record.
-        sourceStanza = ['-', '-', '-', '-', '-']
-        for source in clean_source:
-            if re.search('^## ', source):
-                sourceFile = sourceStanza[1]
-                sourceLine = sourceStanza[2]
-                sourceCall = sourceStanza[3]
-                sourceCallArgs = sourceStanza[4]
-                sourceRecord = [sourceLine, sourceCall, sourceCallArgs]
-                File = (sourceFile, )
-                for F in File:
-                    if not re.search('^\-', F):
-                        database.execute("""insert into tb_files values (NULL, ?)""", File)
-                if not re.search('^\-', sourceLine):
-                    database.execute("""insert into tb_source
-                    values (NULL, ?, ?, ?)""", sourceRecord)
-                sourceStanza = []
-            sourceStanza.append(source)
-        # The final source record is not listed in the for-loop above so we add it in after.
-        sourceFile = sourceStanza[1]
-        sourceLine = sourceStanza[2]
-        sourceCall = sourceStanza[3]
-        sourceCallArgs = sourceStanza[4]
-        File = (sourceFile, )
-        source = [sourceLine, sourceCall, sourceCallArgs]
-        database.execute("""insert into tb_files values (NULL, ?)""", File)
-        database.execute("""insert into tb_source values (NULL, ?,?,?)""", source)
-    except Exception as err:
-        print("\ninsertSource() Error: {0}".format(err),"\n")
-        usage()
-    outputFile.commit()
-    database.close()
-
-"""
 writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
-for debugging purposes. 
-
-To debug: 
-
-In parseRecords():
-create string output = '' at beginning of function
-at the end of the function *inside* the for-loop assign whatever variable you would like as output += <variable>
-at the end of the function *outside* of the for-loop return output
-In main():
-use function writeOut( outputFile, output )
-outputFile being the location of where you would like the file to be located.
-
-This will write the output of the parsing to where you would like it to be located.
-
-writeOut('/home/twitch153/seorigin/debug.txt', output)
+for debugging purposes.
 """
 def writeOut( outputFile, output ):
     try:
@@ -685,6 +738,49 @@ def writeOut( outputFile, output ):
     parsedOut.close()
 
 """
+insertSource() calls all necessary commands required to populate tables with source 
+record information.
+"""
+def insertSource( outputFile, record, classList, permsList ):
+    try:
+        database = outputFile.cursor()
+        insertAllLabels( outputFile, record, classList, permsList )
+        fileName = getFileName( record )
+        fileId = insertFile( outputFile, fileName )
+        lineNum = getLineNumber( record )
+        recordLine = getSourceLine( record )
+        if re.search('^ ', record):
+            pass
+        if re.search('^\n', record):
+            pass
+        statementType = getStatementType(recordLine)
+        statementId = insertStatement(outputFile, statementType)
+        # If we find an allow statement
+        if statementType == 0:
+            #source = (fileId, lineNum, StatementId, )
+            pass
+            #database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
+        # If we find an interface call
+        elif statementType == 1:
+            #database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
+            pass
+        # If we find a typeattribute statement
+        elif statementType == 2:
+            pass
+            #database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
+        # If we find a dontaudit statement
+        elif statementType == 3:
+            pass
+            #database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
+        # If we find a declaration
+        elif statementType == 4:
+            pass
+            #database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
+    except Exception as err:
+        print("insertSource() Error: {0}".format(err),"\n")
+        usage()
+
+"""
 seorigin( outputFile, lines ) creates the seorigin database by calling the necessary functions to 
 create and write the seorigin database.
 """
@@ -693,11 +789,16 @@ def seorigin( outputFile, lines ):
         classList = getClassList()
         permsList = getPermsList()
         createTables( outputFile )
-        insertFile( outputFile, lines )
-        insertStatementTables( outputFile, lines )
-        insertDefinitionNames(  outputFile, lines )
-        insertLabel( outputFile, lines, classList, permsList )
-        insertLabelSet( outputFile, lines, classList, permsList )
+        source_record = cleanSource( lines )
+        definition_record = cleanDefine( lines )
+
+        #for definition in definition_record:
+            #insertAllLabels( outputFile, definition, classList, permsList )
+            #defName = getDefinitionName( definition )
+            #insertDefinitionName( outputFile, defName )
+        for source in source_record:
+            insertSource( outputFile, source, classList, permsList )
+
     except Exception as err:
         print("seorigin() Error: {0}".format(err),"\n")
         usage()
@@ -706,7 +807,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens!Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.1.7: \n")
+    print("Workflow component v1.1.8: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
