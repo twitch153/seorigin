@@ -156,7 +156,7 @@ def getStatementType( line ):
     elif re.search('types .*', line):
         statementValue = 3
     elif re.search('role .*', line):
-        statementValue = 301
+        statementValue = 3
     else:
         pass
         #print('Unknown line: ' + line)
