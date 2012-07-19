@@ -2,4 +2,4 @@ debug.log
 parsed_output.txt
 *.pp
 refpolicy/tmp/
-seorigin
+seorigin.db

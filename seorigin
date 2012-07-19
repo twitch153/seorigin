@@ -1,0 +1,265 @@
+#!/usr/bin/env python
+
+import sys, getopt, os
+
+"""
+===================================================================
+= seorigin allows users to query the built database with SELinux
+= rules and statements, tracing back to the definitions that created
+= the mentioned SELinux rule.
+= 
+= This file is part of seorigin
+= Copyright (C) 2012 Devan Franchini, Sven Vermeulen
+= 
+= seorigin is free software: you can redistribute it and/or modify
+= it under the terms of the GNU General Public License as published by
+= the Free Software Foundation, either version 3 of the License or later.
+===================================================================
+"""
+
+"""
+usage - Show the online help for seorigin
+"""
+def usage():
+  print("Usage:\nseorigin [OPTIONS] RULE_TYPE [EXPRESSION]")
+  print("OPTIONS:")
+  print("  -h, --help           print this help text and exit")
+  print("\nRULE_TYPE:")
+  print("  -A, --allow          search through allow rules")
+  print("  --neverallow         search through neverallow rules")
+  print("  --auditallow         search through auditallow rules")
+  print("  --dontaudit          search through dontaudit rules")
+  print("  -T, --type_trans     search through type_trans rules")
+  print("  -M, --type_member    search through type_member rules")
+  print("  -C, --type_change    search through type_change rules")
+  print("  --typeattribute	search through typeattribute rules")
+  print("  --role_allow         search through role_allow rules")
+  print("  --role_trans         search throguh role_trans rules")
+  print("  --range_trans        search through range_trans rules")
+  print("\nEXPRESSION:")
+  print("  -s NAME, --source=NAME   rules with type/attribute NAME as source")
+  print("  -t NAME, --target=NAME   rules with type/attribute NAME as target")
+  print("  -n NAME, --newtype=NAME  rules with type/attribute NAME as new type")
+  print("  --role_source=NAME       rules with role NAME as a source")
+  print("  --role_target=NAME       rules with role NAME as a target")
+  print("  -c NAME, --class=NAME    rules with class NAME as the object class")
+  print("  -p P1[,P2,...], --perm=P1[,P2,...]")
+  print("                           rules with the specified permission(s)")
+  sys.exit(0)
+
+"""
+initSeoriginOpts - Initialize the option dictionary
+"""
+def initSeoriginOpts():
+  seOpts = {}
+  seOpts['doallow'] = 0
+  seOpts['doneverallow'] = 0
+  seOpts['doauditallow'] = 0
+  seOpts['dodontaudit'] = 0
+  seOpts['dotype_trans'] = 0
+  seOpts['dotype_member'] = 0
+  seOpts['dotype_change'] = 0
+  seOpts['dorole_allow'] = 0
+  seOpts['dorole_trans'] = 0
+  seOpts['dorange_trans'] = 0
+  seOpts['dotypeattribute'] = 0
+  seOpts['hassource'] = 0
+  seOpts['hastarget'] = 0
+  seOpts['hasnewtype'] = 0
+  seOpts['hasrole_source'] = 0
+  seOpts['hasrole_target'] = 0
+  seOpts['hasclass'] = 0
+  seOpts['haspermission'] = 0
+
+  return seOpts
+
+
+"""
+parse_cmd_args - Read in user-provided arguments
+"""
+def parse_cmd_args():
+  shortOpts = 'hATMCs:t:c:p:n:'
+  longOpts = ['help', 'allow', 'neverallow', 'auditallow', 'dontaudit', 'type_trans', 'type_member', 'type_change', 'typeattribute', 'role_allow', 'role_trans', 'range_trans', 'source=', 'target=', 'newtype=', 'role_source=', 'role_target=', 'class=', 'perm=']
+  seOpts = initSeoriginOpts()
+
+  opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
+  
+  for o, p in opts:
+    if o in ['-h', '--help']:
+      usage()
+      exit(0)
+    elif o in ['-A', '--allow']:
+      seOpts['doallow'] = 1
+    elif o in ['--neverallow']:
+      seOpts['doneverallow'] = 1
+    elif o in ['--auditallow']:
+      seOpts['doauditallow'] = 1
+    elif o in ['--dontaudit']:
+      seOpts['dodontaudit'] = 1
+    elif o in ['-T', '--type_trans']:
+      seOpts['dotype_trans'] = 1
+    elif o in ['-M', '--type_member']:
+      seOpts['dotype_member'] = 1
+    elif o in ['-C', '--type_change']:
+      seOpts['dotype_change'] = 1
+    elif o in ['--role_allow']:
+      seOpts['dorole_allow'] = 1
+    elif o in ['--role_trans']:
+      seOpts['dorole_trans'] = 1
+    elif o in ['--range_trans']:
+      seOpts['dorange_trans'] = 1
+    elif o in ['--typeattribute']:
+      seOpts['dotypeattribute'] = 1
+    elif o in ['-t', '--target']:
+      seOpts['hastarget'] = 1
+      seOpts['target'] = p
+    elif o in ['-s', '--source']:
+      seOpts['hassource'] = 1
+      seOpts['source'] = p
+    elif o in ['--role_source']:
+      seOpts['hasrole_source'] = 1
+      seOpts['role_source'] = p
+    elif o in ['--role_target']:
+      seOpts['hasrole_target'] = 1
+      seOpts['role_target'] = p
+    elif o in ['-n', '--newtype']:
+      seOpts['hasnewtype'] = 1
+      seOpts['newtype'] = p
+    elif o in ['-c', '--class']:
+      seOpts['hasclass'] = 1
+      seOpts['class'] = p
+    elif o in ['-p', '--perm']:
+      seOpts['haspermission'] = 1
+      seOpts['permission'] = p
+
+  return seOpts
+
+
+"""
+main - Parse user arguments, handle potential errors and call workflow query functions
+"""
+def main():
+  seoriginOptions = parse_cmd_args()
+  # We sum all options. Since one may be given, the sum must be one.
+  optionSum = seoriginOptions['doallow'] + seoriginOptions['doneverallow'] + seoriginOptions['doauditallow'] + seoriginOptions['dodontaudit'] + seoriginOptions['dotype_trans'] + seoriginOptions['dotype_member'] + seoriginOptions['dotype_change'] + seoriginOptions['dorole_allow'] + seoriginOptions['dorole_trans'] + seoriginOptions['dorange_trans'] + seoriginOptions['dotypeattribute']
+
+  if (optionSum > 1):
+    print("More than one RULE_TYPE given. Please only give one rule type to query.")
+    exit(1)
+  elif (optionSum == 0):
+    print("You need to give a RULE_TYPE to query.")
+    exit(2)
+
+  # Let's now see if we can call the necessary workflow components
+  if (seoriginOptions['doallow'] == 1):
+    # allow <source> <target>:<class> <permission>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
+      workflowFindOrigin_allow(seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+    else:
+      print("allow queries need to have a source, target, class and permission set.")
+  elif (seoriginOptions['doneverallow'] == 1):
+    # neverallow <source> <target>:<class> <permission>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
+      workflowFindOrigin_neverallow(seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+    else:
+      print("neverallow queries need to have a source, target, class and permission set.")
+  elif (seoriginOptions['doauditallow'] == 1):
+    # auditallow <source> <target>:<class> <permission>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
+      workflowFindOrigin_auditallow(seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+    else:
+      print("auditallow queries need to have a source, target, class and permission set.")
+  elif (seoriginOptions['dodontaudit'] == 1):
+    # dontaudit <source> <target>:<class> <permission>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
+      workflowFindOrigin_dontaudit(seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+    else:
+      print("dontaudit queries need to have a source, target, class and permission set.")
+  elif (seoriginOptions['dotype_trans'] == 1):
+    # type_transition <source> <target>:<class> <newtype>
+    if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
+      workflowFindOrigin_type_transition(seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+    else:
+      print("type_transition queries need to have a source, target, class and newtype set.")
+  elif (seoriginOptions['dotype_member'] == 1):
+    # type_member <source> <target>:<class> <newtype>
+    if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
+      workflowFindOrigin_type_member(seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+    else:
+      print("type_member queries need to have a source, target, class and newtype set.")
+  elif (seoriginOptions['dotype_change'] == 1):
+    # type_change <source> <target>:<class> <newtype>
+    if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
+      workflowFindOrigin_type_change(seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+    else:
+      print("type_change queries need to have a source, target, class and newtype set.")
+  elif (seoriginOptions['dorole_allow'] == 1):
+    # allow <source_role> <target_role>
+    if (seoriginOptions['hasrole_source'] == 1) & (seoriginOptions['hasrole_target'] == 1):
+      workflowFindOrigin_allowrole(seoriginOptions['role_source'], seoriginOptions['role_target'])
+    else:
+      print("role allows need to have a source and target role set.")
+  elif (seoriginOptions['dorole_trans'] == 1):
+    # role_transition <source_role> <type> <target_role>
+    if (seoriginOptions['hasrole_source'] == 1) & (seoriginOptions['hassource'] == 1) & (seoriginOptions['hasrole_target'] == 1):
+      workflowFindOrigin_role_transition(seoriginOptions['role_source'], seoriginOptions['source'], seoriginOptions['role_target'])
+    else:
+      print("role_transition needs to have a source role, target role and source type set.")
+  elif (seoriginOptions['dorange_trans'] == 1):
+    # range_transition <source> <target>:<class> <range>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasrange'] == 1):
+      workflowFindOrigin_range_transition(seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['range'])
+    else:
+      print("range_transition needs to have a source, target, class and range set.")
+  elif (seoriginOptions['dotypeattribute'] == 1):
+    # type <sourcetype>, <targettype>
+    # or
+    # typeattribute <sourcetype> <targettype>
+    if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1):
+      workflowFindOrigin_typeattribute(seoriginOptions['source'], seoriginOptions['target'])
+    else:
+      print("typeattribute needs to have a source (type) and target (attribute) set.")
+
+
+"""
+TODO these functions need to be part of the workflow component
+"""
+def workflowFindOrigin_allow(src, tgt, cls, prv):
+  print("Looking for: allow %s %s:%s %s" % (src, tgt, cls, prv))
+
+def workflowFindOrigin_neverallow(src, tgt, cls, prv):
+  print("Looking for: neverallow %s %s:%s %s" % (src, tgt, cls, prv))
+
+def workflowFindOrigin_auditallow(src, tgt, cls, prv):
+  print("Looking for: auditallow %s %s:%s %s" % (src, tgt, cls, prv))
+
+def workflowFindOrigin_dontaudit(src, tgt, cls, prv):
+  print("Looking for: dontaudit %s %s:%s %s" % (src, tgt, cls, prv))
+
+def workflowFindOrigin_type_transition(src, tgt, cls, ntp):
+  print("Looking for: type_transition %s %s:%s %s" % (src, tgt, cls, ntp))
+
+def workflowFindOrigin_type_member(src, tgt, cls, ntp):
+  print("Looking for: type_member %s %s:%s %s" % (src, tgt, cls, ntp))
+
+def workflowFindOrigin_type_change(src, tgt, cls, ntp):
+  print("Looking for: type_change %s %s:%s %s" % (src, tgt, cls, ntp))
+
+def workflowFindOrigin_allowrole(srl, trl):
+  print("Looking for: allow %s %s" % (srl, trl))
+
+def workflowFindOrigin_role_transition(srl, src, trl):
+  print("Looking for: role_transition %s %s %s" % (srl, src, trl))
+
+def workflowFindOrigin_range_transition(src, tgt, cls, range):
+  print("Looking for: range_transition %s %s:%s %s" % (src, tgt, cls, range))
+
+def workflowFindOrigin_typeattribute(src, tgt):
+  print("Looking for: typeattribute %s %s (or type %s, %s)" % (src, tgt, src, tgt))
+
+
+"""
+Run main function if no functions are explicitly called.
+"""
+if __name__ == "__main__":
+  main()
