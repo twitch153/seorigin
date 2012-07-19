@@ -184,8 +184,9 @@ getFileName() goes through a source record and returns the file name.
 """
 def getFileName( record ):
     sourceFile = ''
-    if re.search('^\w+/.*$', record):
-       sourceFile = record
+    if re.search('^# \w+/.*$', record):
+        record = re.sub('^# ', '', record)
+        sourceFile = record
     return sourceFile
 
 """
@@ -353,14 +354,14 @@ def getClassesFromRule( line ):
     return classes
 
 """
-getPermissionsFromRule() goes through a rule statement such as this:
+getPrivilegesFromRule() goes through a rule statement such as this:
 
     "allow $1 $2:file { mmap_file_perms ioctl lock };"
 
 and would return the destination label which in this case would be: 
 the label set { mmap_file_perms ioctl lock }.
 """
-def getPermissionsFromRule( line ):
+def getPrivilegesFromRule( line ):
     try:
         permissions = ''
         setCheck = False
@@ -374,7 +375,7 @@ def getPermissionsFromRule( line ):
             permissions = re.sub('^\$\d+ ', '', line)
         return permissions
     except Exception as err:
-        print("\ngetPermissionsFromRule() Error{0}".format(err),"\n")
+        print("\ngetPrivilegesFromRule() Error{0}".format(err),"\n")
         usage()
 """
 labelsToList( line ) gets the labels from a specific line and returns the labels parsed out from the line as a list of
@@ -718,6 +719,7 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
         database = outputFile.cursor()
         modifier = 1
         labelSetId = 0
+        labelId = 0
         if not re.search('\~', labelSet):
             modifier = 0
 
@@ -740,7 +742,10 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
                         labelSetId = database.fetchone()
                         labelSetId = int(''.join(map(str,labelSetId)))
                         values = (labelSetId, labelId, modifier)
-                        database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
+                        try:
+                            database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
+                        except sqlite3.IntegrityError:
+                            pass
         else:
             database.execute('''select * from tb_labelSet''')
             popCheck = database.fetchone()
@@ -757,10 +762,13 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
                 if labelSetId == None:
                     database.execute('''select max(labelSetId)+1 from tb_labelSet''')
                     labelSetId = database.fetchone()
-                    labelId = int(''.join(map(str,labelId))) # converts Tuple to int
-                    labelSetId = int(''.join(map(str,labelSetId)))
-                    values = (labelSetId, labelId, modifier)
+                labelId = int(''.join(map(str,labelId))) # converts Tuple to int
+                labelSetId = int(''.join(map(str,labelSetId)))
+                values = (labelSetId, labelId, modifier)
+                try:
                     database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
+                except sqlite3.IntegrityError:
+                    pass
         if type(labelId) is not tuple:
             labelId = (labelId, ) # This is necessary to have unless we want to run
                                   # into "parameter not supported" errors.
@@ -793,25 +801,33 @@ def insertAllLabels( outputFile, line, classList, permsList ):
 
 def insertStatementRule( outputFile, line, classList, permsList ):
     try:
+        print(line)
         setCheck = False
         database = outputFile.cursor()
         sourceLabel = getSourceFromRule(line)
         destinationLabel = getDestinationFromRule(line)
         classesLabel = getClassesFromRule(line)
-        permissionsLabel = getPermissionsFromRule(line)
+        privilegesLabel = getPrivilegesFromRule(line)
         ruleType = getRuleType(line)
         if re.search("^.*self.*$", destinationLabel):
             destinationLabel = re.sub('self', sourceLabel, destinationLabel)
         srcLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, sourceLabel, classList, permsList ))))
         dstLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, destinationLabel, classList, permsList ))))
         classLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, classesLabel, classList, permsList ))))
-        prvsLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, permissionsLabel, classList, permsList ))))
+        prvsLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, privilegesLabel, classList, permsList ))))
         rule = (ruleType, srcLabelSetId, dstLabelSetId, classLabelSetId, prvsLabelSetId)
-        database.execute('''insert into tb_statement_rule values (NULL, ?, ?, ?, ?, ?)''', rule)
         Ids = (srcLabelSetId, dstLabelSetId, classLabelSetId, prvsLabelSetId)
         database.execute('''select statementId from tb_statement_rule where sourceId = ? 
         and targetId = ? and classesId = ? and privilegeId = ?''', Ids)
         statementId = database.fetchone()
+        if statementId == None:
+            database.execute('''insert into tb_statement_rule values (NULL, ?, ?, ?, ?, ?)''', rule)
+        else:
+            pass
+        database.execute('''select statementId from tb_statement_rule where sourceId = ? 
+        and targetId = ? and classesId = ? and privilegeId = ?''', Ids)
+        statementId = database.fetchone()
+
         return statementId
     except Exception as err:
         print("\ninsertStatementRule() Error: {0}".format(err),"\n")
@@ -872,35 +888,6 @@ def insertStatementDeclare( outputFile, line, classList, permsList ):
     database.close()
 
 """
-insertStatement() checks the statement type of the line being inserted.
-If the statement type of the line matches against that of one of the ones being searched for
-it'll run the insert() function that is in accordance with that particular statement and then return the
-statementId.
-"""
-def insertStatement( outputFile, line, statementType, classList, permsList ):
-    try:
-        statementId = 0
-        database = outputFile.cursor()
-        # If we encounter a rule statement.
-        if statementType == 0:
-            statementId = insertStatementRule( outputFile, line, classList, permsList )
-        # If we encounter an interface statement.
-        elif statementType == 1:
-            insertStatementInterface( outputFile, line, classList, permsList )
-        # If we encounter an assign statement.
-        elif statementType == 2:
-            insertStatementAssign( outputFile, line, classList, permsList )
-        # If we enounter a declare statememt
-        elif statementType == 3:
-            insertStatementDeclare( outputFile, line, classList, permsList )
-        return statementId
-    except Exception as err:
-        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
-        usage()
-    outputFile.commit()
-    database.close()
-
-"""
 writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
 for debugging purposes.
 """
@@ -924,25 +911,26 @@ def insertSource( outputFile, record, classList, permsList ):
         fileId = insertFile( outputFile, fileName )
         recordLine = getSourceLine( record ) 
         statementType = getStatementType(recordLine)
-        statementId = insertStatement(outputFile, record, statementType, classList, permsList)
-        if not statementId == 0:
-            statementId = int(''.join(map(str, statementId)))
         lineNum = getLineNumber( record )
-        source = (fileId, lineNum, statementId )
         # If we find a rule statement
         if statementType == 0:
+            statementId = int(''.join(map(str, insertStatementRule( outputFile, record, classList, permsList ))))
+            source = ( fileId, lineNum, statementId )
             database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
         # If we find an interface statement
         elif statementType == 1:
+            statementId = insertStatementInterface( outputFile, record, classList, permsList )
+            source = ( fileId, lineNum, statementId )
             #database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
-            pass
         # If we find an assignation statement
         elif statementType == 2:
-            pass
+            statementId = insertStatementAssign( outputFile, record, classList, permsList )
+            source = ( fileId, lineNum, statementId )
             #database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
         # If we find declaration statement
         elif statementType == 3:
-            pass
+            statementId = insertStatementDeclare( outputFile, record, classList, permsList )
+            source = ( fileId, lineNum, statementId )
             #database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
     except Exception as err:
         print("insertSource() Error: {0}".format(err),"\n")
