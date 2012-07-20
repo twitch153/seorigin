@@ -801,7 +801,6 @@ def insertAllLabels( outputFile, line, classList, permsList ):
 
 def insertStatementRule( outputFile, line, classList, permsList ):
     try:
-        print(line)
         setCheck = False
         database = outputFile.cursor()
         sourceLabel = getSourceFromRule(line)
@@ -887,6 +886,27 @@ def insertStatementDeclare( outputFile, line, classList, permsList ):
     outputFile.commit()
     database.close()
 
+def insertStatement( outputFile, line, statementType, classList, permsList ):
+    try: 
+        statementId = 0
+        database = outputFile.cursor()
+        # If we encounter a rule statement.
+        if statementType == 0:
+            statementId = insertStatementRule( outputFile, line, classList, permsList )
+        # If we encounter an interface statement.
+        elif statementType == 1:
+            insertStatementInterface( outputFile, line, classList, permsList )
+        # If we encounter an assign statement.
+        elif statementType == 2:
+            insertStatementAssign( outputFile, line, classList, permsList )
+        # If we enounter a declare statememt.
+        elif statementType == 3:
+            insertStatementDeclare( outputFile, line, classList, permsList )
+        return statementId
+    except Exception as err:
+        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
+        usage()
+
 """
 writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
 for debugging purposes.
@@ -910,11 +930,17 @@ def insertSource( outputFile, record, classList, permsList ):
         fileName = getFileName( record )
         fileId = insertFile( outputFile, fileName )
         recordLine = getSourceLine( record ) 
+        if re.search('^ ', record):
+            pass
+        if re.search('^\n', record):
+            pass
         statementType = getStatementType(recordLine)
         lineNum = getLineNumber( record )
+        statementId = insertStatement( outputFile, record, statementType, classList, permsList )
+        if not statementId == 0:
+            statementId = int(''.join(map(str, statementId )))
         # If we find a rule statement
         if statementType == 0:
-            statementId = int(''.join(map(str, insertStatementRule( outputFile, record, classList, permsList ))))
             source = ( fileId, lineNum, statementId )
             database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
         # If we find an interface statement
@@ -935,6 +961,8 @@ def insertSource( outputFile, record, classList, permsList ):
     except Exception as err:
         print("insertSource() Error: {0}".format(err),"\n")
         usage()
+    outputFile.commit()
+    database.close()
 
 """
 cleanDefinition() cleans up existing records by looking in tb_definitionName for the existing definition
@@ -965,6 +993,7 @@ def insertDefinition( outputFile, record, classList, permsList ):
             cleanDefinition( outputFile, defName )
         definitionId = insertDefinitionName(outputFile, defName)
         LineType = getStatementType(record)
+
         if LineType == 0:
             statementId = int(''.join(map(str, insertStatementRule( outputFile, record, classList, permsList ))))
             content = (definitionId, statementId, )
