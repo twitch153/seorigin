@@ -52,7 +52,12 @@ Testing
  In order to test this you would need to do the following:
  1.) Make a debug.log by creating a policy package - "make <policy>.pp" in the refpolicy folder.
  2.) Grab input from debug.log with policy parser script - "python policy-parser -i <directory of file> -o <desired output location>
-
+ 3.) Set the symbolic link for python to python3.2 by running the command: 
+             ln -f /usr/bin/python3.2 /usr/bin/python 
+     or for Gentoo users:
+	     eselect python list
+	     Find the number corresponding to the version of python that is 3.2
+	     eselect python set <corresponding number>
 Note
 ----
 
@@ -83,7 +88,7 @@ Contributors
 
 	Devan Franchini		<oot153@gmail.com>
 	Anthony G. Basile	<blueness@gentoo.org>
-
+	Sven Vermuelen 		<swift@gentoo.org>
 
 Bug Reporting:
 --------------
