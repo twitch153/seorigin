@@ -250,53 +250,6 @@ def getLineNumber( record ):
         record = re.sub('^# line: ', '', record)
         lineNum = record
     return lineNum
-    
-"""
-parseForLabelSets() goes through the line given and parses out the proper label sets for the line.
-"""
-def parseForLabelSets( line ):
-    try:
-        labels = ''
-        labelSet = re.sub('^if.*$', '', line)
-        labelSet = re.sub('^.*\(', '', labelSet)
-        labelSet = re.sub('^}.*$', '', labelSet)
-        labelSet = re.sub('\)', '', labelSet)
-        labelSet = re.sub(',', '%', labelSet)
-        labelSet = re.sub('{.*%}', ',', labelSet)
-        labelSet = re.sub('\n', '', labelSet)
-        labelSet = labelSet.split("%")
-        for labels in labelSet:
-            labels = re.sub('^\w*', '', labels)
-            labels = re.sub('^ \w*', '', labels)
-            if re.search('\~{', labels):
-                if re.search('} \~{', labels):
-                    labels = re.sub('^\$\d+', '', labels)
-                    labels = re.sub('\$\d+:\w+ ', '', labels)
-                    labels = re.sub('~{', '@~{', labels)
-                else:
-                    labels = re.sub('^\$\d+.*~{', '@~{', labels)
-                    labels = re.sub('.*~{', '@~{', labels)
-            else:
-                if re.search('} {', labels):
-                    labels = re.sub('^\$\d+', '', labels)
-                    labels = re.sub('\$\d+:\w+ ', '', labels)
-                    labels = re.sub('{', '@{', labels)
-                else:
-                    labels = re.sub('^\$\d+.*{', '@{', labels)
-                    labels = re.sub('.*{', '@{', labels)
-            if re.search('.*} ~{.*$', labels):
-                labels = re.sub('} ~{', '}@~{', labels)
-            elif re.search('.*} {.*$', labels):
-                labels = re.sub('} {', '}@{', labels)
-            labels = re.sub('};', '}', labels)
-            labels = re.sub('\n', '', labels)
-            labels = re.sub('^ $', '', labels)
-            labels = re.sub('^ ', '', labels)
-            labels = labels.split('@')
-            
-            return labels
-    except Exception as err:
-        print("\nparseForLabelSets Error {0}".format(err),"\n")
 
 """
 getSourceFromRule() goes through a rule statement such as this:
@@ -404,69 +357,6 @@ def getPrivilegesFromRule( line ):
         usage()
 
 """
-labelsToList( line ) gets the labels from a specific line and returns the labels parsed out from the line as a list of
-the labels of that line.
-"""
-def labelsToList( line ):
-    try:
-        labels = ''
-        statementCheck = False
-        interfaceCheck = False
-        labelSetCheck = False
-        if getStatementType(line) == 0:
-            statementCheck = True
-        elif getStatementType(line) == 2:
-            statementCheck = True
-        elif getStatementType(line) == 3:
-            statementCheck = True
-        elif getStatementType(line) == 4:
-            statementCheck = True
-        elif re.search('^\n', line):
-            statementCheck = False
-        if re.search('.*{', line):
-            labelSetCheck = True
-        elif re.search('}', line):
-            labelSetCheck = False
-        if re.search('^.*\(', line):
-            interfaceCheck = True
-
-        if statementCheck:
-            line = re.sub('^\s+', '', line)
-            labels = re.sub('^\w+ ', '', line)
-            labels = re.sub('optional_policy.*$', '', labels)
-            labels = re.sub('tunable_policy.*$', '', labels)
-            labels = re.sub(':', ' ', labels)
-            labels = re.sub('dontaudit', '', labels)
-            labels = re.sub('\'', '', labels)
-            labels = re.sub('{.*}', '', labels)
-            labels = re.sub('^.*\(', '', labels)
-            labels = re.sub('\)', '', labels)
-            labels = re.sub(';', '', labels)
-            labels = re.sub(',', ' ', labels)
-            labels = re.sub('~', '', labels)
-            labels = labels.split()
-
-        if interfaceCheck:
-            line = re.sub('^\s+', '', line)
-            labels = re.sub('optional_policy.*$', '', line)
-            labels = re.sub('tunable_policy.*$', '', labels)
-            labels = re.sub('genfscon.*$', '', labels)
-            labels = re.sub('^if.*$', '', labels)
-            labels = re.sub('^\w*', '', labels)
-            labels = re.sub('[\(\)]', '', labels)
-            labels = re.sub('{.*}', '', labels)
-            labels = re.sub('~', '', labels)
-            labels = re.sub('[,, ]', ' ', labels)
-            labels = re.sub('\n*', '', labels)
-            labels = labels.split()
-
-        if labelSetCheck:
-            labels = parseForLabelSets(line)
-        return labels
-    except Exception as err:
-        print("\nlabelsToList() Error: {0}".format(err),"\n")
-
-"""
 getInterfaceArgs() reads in the line of an interface statement and returns in interface
 arguments as a list. 
 If we get an interface statement such as:
@@ -487,6 +377,14 @@ def getInterfaceArgs( line ):
     except Exception as err:
         print('\ngetInterfaceArgs() Error: {0}'.format(err),"\n")
 
+'''
+getTargetFromAssignation() takes in an assignation line such as:
+    role system_r types $1;
+        or
+    typeattribute file domain, foo_t, bar_t;
+and returns the target label in the first case it would be: system_r
+in the second case it would be: file
+'''
 def getTargetFromAssignation( line ):
     try:
         target = ''
@@ -928,24 +826,6 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
     database.close()
 
 """
-insertAllLabels() goes through the list of labels given to it then inserts it into the seorigin db.
-"""
-def insertAllLabels( outputFile, line, classList, permsList ):
-    try:
-        selfCheck = ''
-        labels = labelsToList( line )
-        for label in labels:
-            if label == '':
-                pass
-            else:
-                insertLabelSet( outputFile, label, classList, permsList )
-    except Exception as err:
-        print("\ninsertAllLabels() Error: {0}".format(err),"\n")
-        usage()
-    outputFile.commit()
-    database.close()
-
-"""
 insertStatementRule() disects the line that it is given, breaks those parts
 up for proper insertion for tb_statement_rule as well as returning statementId
 """
@@ -1121,7 +1001,7 @@ def insertSource( outputFile, record, classList, permsList ):
         # If we find an assignation statement
         elif statementType == 2:
             database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementAllowId = ?''', source)
+            statementAssignId = ?''', source)
             popCheck = database.fetchone()
             if popCheck == None:
                 database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
@@ -1130,7 +1010,7 @@ def insertSource( outputFile, record, classList, permsList ):
         # If we find declaration statement
         elif statementType == 3:
             database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementAllowId = ?''', source)
+            statementDeclareId = ?''', source)
             popCheck = database.fetchone()
             if popCheck == None:
                 database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
