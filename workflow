@@ -35,10 +35,10 @@ import sys, getopt, re, os, sqlite3, types
 def usage():
 	print("Proper usage:\nworkflow -i(--input) [file to parse] -o(--output) [database location]")
 def labelHelp():
-        print("Labels: ")
-        print("========\n")
+        print(" Labels: ")
+        print(" =======\n")
         print("   Label classes: ")
-        print("   ===============")
+        print("   ============== ")
         print("   Label classes are separate by seven classes: ")
         print("   type label, class label, string label, attribute label, ")
         print("   privilege label, argument label, and role label.\n")
@@ -46,9 +46,26 @@ def labelHelp():
         print("   Label integer types are as follows: ")
         print("   1 = Type label\n   2 = Attribute Label\n   3 = Classes label\n   4 = Privilege label")
         print("   5 = String/File label\n   6 = Argument label\n   7 = Role label\n")
+        print("\n Label Sets: ")
+        print(" ===========\n")
+        print("   Label Set Ids: ")
+        print("   ==============")
+        print("   Label set Ids are dynamically generated identification numbers")
+        print("   for label sets.")
+        print("   A label set can be considered as one label when going into the\n   \"insertLabelSet()\" function such as:\n\tfoo_t")
+        print("   it can also be considered a set of labels such as:\n\t{ foo_t bar_t }")
+        print("   Label Set Ids are generated in this fashion:\n")
+        print("   foo_t\n")
+        print("      labelId = 1")
+        print("      labelSetId = 1\n")
+        print("   { foo_t bar_t }\n")
+        print("      labelId = 1 (for foo_t)")
+        print("      labelSetId = 2")
+        print("      labelId = 2 (for bar_t)")
+        print("      labelSetId = 2\n")    
 def statementHelp():
-        print("Statements: ")
-        print("===========\n")
+        print(" Statements: ")
+        print(" ===========\n")
         print("   Statement classes: ")
         print("   ===================")
         print("   Statement classes are separate by four classes: ")
@@ -57,6 +74,17 @@ def statementHelp():
         print("   the statement class as an integer.\n")
         print("   Statement integer types are as follows: ")
         print("   0 = Rule statement\n   1 = Interface statement\n   2 = Assign statement\n   3 = Declare statement")
+        print("\n Rule Statements: ")
+        print(" ================\n")
+        print("   Rule classes: ")
+        print("   ============= ")
+        print("   Rule classes are separate by five classes: ")
+        print("   allow statements, type statements, dontaudit statements,\n   auditallow statements and range_transition statements.\n")
+        print("   when inserting rule types into SEOrigin's database we consider")
+        print("   the rule class as an integer for simplicity.\n")
+        print("   Rule integer types are as follows: ")
+        print("   1 = Allow statements\n   2 = Type statements\n   3 = Dontaudit statements\n   4 = Auditallow statements")
+        print("   5 = Range_transition statements.\n")
 
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
@@ -376,6 +404,14 @@ def getInterfaceArgs( line ):
         return args
     except Exception as err:
         print('\ngetInterfaceArgs() Error: {0}'.format(err),"\n")
+
+def getInterfaceName( interfaceLine ):
+    try:
+        name = ''
+        name = re.sub('\(.*\)', '', interfaceLine)
+        return name
+    except Exception as err:
+        print('\ngetInterfaceName() Error: {0}'.format(err),'\n')
 
 '''
 getTargetFromAssignation() takes in an assignation line such as:
@@ -893,11 +929,36 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
     try:
         database = outputFile.cursor()
         args = getInterfaceArgs(line)
-        for arg in args:
-            arg = re.sub('^ ', '', arg)
-            insertLabelSet( outputFile, arg, classList, permsList )
-        #database.execute('''insert into tb_statement_interface values (NULL, ?, ?, NULL, NULL, NULL)''', source)
-        pass
+        interfaceName = getInterfaceName(line)
+        interfaceName = (interfaceName, )
+        database.execute('''select definitionId from tb_definitionNames where DefinitionName = ?''', interfaceName)
+        interfaceId = int(''.join(map(str, database.fetchone())))
+        argId2 = None
+        argId3 = None
+        argId4 = None
+        argId5 = None
+        argId1 = int(''.join(map(str, insertLabelSet( outputFile, args[0], classList, permsList ))))
+        try:
+            argId2 = int(''.join(map(str, insertLabelSet( outputFile, args[1], classList, permsList ))))
+            argId3 = int(''.join(map(str, insertLabelSet( outputFile, args[2], classList, permsList ))))
+            argId4 = int(''.join(map(str, insertLabelSet( outputFile, args[3], classList, permsList ))))
+            argId5 = int(''.join(map(str, insertLabelSet( outputFile, args[4], classList, permsList ))))
+        except IndexError:
+            pass
+        values = (interfaceId, argId1, argId2, argId3, argId4, argId5)
+        print(values)
+        database.execute('''select StatementId from tb_statement_interface where interfaceId = ? and 
+        arg1labelId = ? and arg2labelId = ? and arg3labelId = ? and arg4labelId = ? and arg5labelId = ?''', values)
+        postPopCheck = database.fetchone()
+        print(postPopCheck)
+        if postPopCheck == None: 
+            database.execute('''insert into tb_statement_interface values (NULL, ?, ?, ?, ?, ?, ?)''', values)
+        else:
+            pass
+        database.execute('''select statementId from tb_statement_interface where interfaceId = ? and 
+        arg1labelId = ? and arg2labelId = ? and arg3labelId = ? and arg4labelId = ? and arg5labelId = ?''', values)
+        statementId = database.fetchone()
+        return statementId
     except Exception as err:
         print("\ninsertStatementInterface() Error: {0}".format(err),"\n")
         usage()
@@ -996,8 +1057,13 @@ def insertSource( outputFile, record, classList, permsList ):
                 pass
         # If we find an interface statement
         elif statementType == 1:
-            pass
-            #database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
+            database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+            statementAllowId = ?''', source)
+            popCheck = database.fetchone()
+            if popCheck == None:
+                database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
+            else:
+                pass
         # If we find an assignation statement
         elif statementType == 2:
             database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
@@ -1034,7 +1100,7 @@ def cleanDefinition( outputFile, definitionName ):
         database.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
         definitionId = database.fetchone()
         database.execute('''select * from tb_definition_content where DefinitionId = ?''', definitionId)
-        definitionContent = database.fetchone() 
+        definitionContent = database.fetchone()
         if not definitionContent == None:
             database.execute('''delete tb_definition_content where DefinitionId = ?''', definitionId)
     except Exception:
@@ -1052,7 +1118,6 @@ def insertDefinition( outputFile, record, classList, permsList ):
             defName = getDefinitionName( record[1] )         
             cleanDefinition( outputFile, defName )
             definitionId = int(''.join(map(str, insertDefinitionName(outputFile, defName))))
-            definition = record[2:]
             for record in record[2:]:
                 LineType = getStatementType(record)
                 if LineType == 0:
@@ -1062,19 +1127,19 @@ def insertDefinition( outputFile, record, classList, permsList ):
                     (?, NULL, ?, NULL, NULL)''', content)
                 elif LineType == 1:
                     statementId = insertStatementInterface( outputFile, record, classList, permsList )
-                    #content = (definitionId, statementId, )
-                    #database.execute('''insert into tb_definition_content values
-                    #(?, NULL, NULL, ?, NULL)''', content)
+                    content = (definitionId, statementId, )
+                    database.execute('''insert into tb_definition_content values
+                    (?, NULL, NULL, ?, NULL)''', content)
                 elif LineType == 2:
                     statementId = int(''.join(map(str, insertStatementAssign( outputFile, record, classList, permsList ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, NULL, ?)''', content)
                 elif LineType == 3:
-                    statementId = insertStatementDeclare( outputFile, record, classList, permsList )
-                    #content = (definitionId, statementId, )
-                    #database.execute('''insert into tb_definition_content values
-                    #(?, ?, NULL, NULL, NULL)''', content)
+                    statementId = int(''.join(map(str, insertStatementDeclare( outputFile, record, classList, permsList ))))
+                    content = (definitionId, statementId, )
+                    database.execute('''insert into tb_definition_content values
+                    (?, ?, NULL, NULL, NULL)''', content)
     except Exception as err:
         print("insertDefinition() Error: {0}".format(err),"\n") 
     outputFile.commit()
@@ -1104,7 +1169,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.0: \n")
+    print("Workflow component v1.2.1: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
