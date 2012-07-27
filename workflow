@@ -930,13 +930,15 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         database = outputFile.cursor()
         args = getInterfaceArgs(line)
         interfaceName = getInterfaceName(line)
+        print(interfaceName)
         interfaceName = (interfaceName, )
         database.execute('''select definitionId from tb_definitionNames where DefinitionName = ?''', interfaceName)
         interfaceId = int(''.join(map(str, database.fetchone())))
-        argId2 = None
-        argId3 = None
-        argId4 = None
-        argId5 = None
+        print(interfaceId)
+        argId2 = 0
+        argId3 = 0
+        argId4 = 0
+        argId5 = 0
         argId1 = int(''.join(map(str, insertLabelSet( outputFile, args[0], classList, permsList ))))
         try:
             argId2 = int(''.join(map(str, insertLabelSet( outputFile, args[1], classList, permsList ))))
@@ -947,10 +949,9 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
             pass
         values = (interfaceId, argId1, argId2, argId3, argId4, argId5)
         print(values)
-        database.execute('''select StatementId from tb_statement_interface where interfaceId = ? and 
+        database.execute('''select statementId from tb_statement_interface where interfaceId = ? and 
         arg1labelId = ? and arg2labelId = ? and arg3labelId = ? and arg4labelId = ? and arg5labelId = ?''', values)
         postPopCheck = database.fetchone()
-        print(postPopCheck)
         if postPopCheck == None: 
             database.execute('''insert into tb_statement_interface values (NULL, ?, ?, ?, ?, ?, ?)''', values)
         else:
@@ -1034,54 +1035,55 @@ record information.
 def insertSource( outputFile, record, classList, permsList ):
     try:
         database = outputFile.cursor()
-        fileName = getFileName( record[1] )
-        fileId = insertFile( outputFile, fileName )
-        if not fileId == 0:
-            fileId = int(''.join(map(str, fileId )))
-        recordLine = getSourceLine( record[3] )
-        statementType = getStatementType(recordLine)
-        lineNum = getLineNumber( record[2] )
-        lineNum = int(''.join(map(str, lineNum )))
-        statementId = insertStatement( outputFile, record[3], statementType, classList, permsList )
-        if not statementId == 0:
-            statementId = int(''.join(map(str, statementId ))) 
-        source = ( fileId, lineNum, statementId )
-        # If we find a rule statement
-        if statementType == 0:
-            database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementAllowId = ?''', source)
-            popCheck = database.fetchone()
-            if popCheck == None:
-                database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
-            else:
-                pass
-        # If we find an interface statement
-        elif statementType == 1:
-            database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementAllowId = ?''', source)
-            popCheck = database.fetchone()
-            if popCheck == None:
-                database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
-            else:
-                pass
-        # If we find an assignation statement
-        elif statementType == 2:
-            database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementAssignId = ?''', source)
-            popCheck = database.fetchone()
-            if popCheck == None:
-                database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
-            else:
-                pass
-        # If we find declaration statement
-        elif statementType == 3:
-            database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-            statementDeclareId = ?''', source)
-            popCheck = database.fetchone()
-            if popCheck == None:
-                database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
-            else:
-                pass
+        if not record == []:       
+            fileName = getFileName( record[1] )
+            fileId = insertFile( outputFile, fileName )
+            if not fileId == 0:
+                fileId = int(''.join(map(str, fileId )))
+            recordLine = getSourceLine( record[3] )
+            statementType = getStatementType(recordLine)
+            lineNum = getLineNumber( record[2] )
+            lineNum = int(''.join(map(str, lineNum )))
+            statementId = insertStatement( outputFile, record[3], statementType, classList, permsList )
+            if not statementId == 0:
+                statementId = int(''.join(map(str, statementId ))) 
+            source = ( fileId, lineNum, statementId )
+            # If we find a rule statement
+            if statementType == 0:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementAllowId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
+                else:
+                    pass
+            # If we find an interface statement
+            elif statementType == 1:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementAllowId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
+                else:
+                    pass
+            # If we find an assignation statement
+            elif statementType == 2:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementAssignId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
+                else:
+                    pass
+            # If we find declaration statement
+            elif statementType == 3:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementDeclareId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
+                else:
+                    pass
     except Exception as err:
         print("insertSource() Error: {0}".format(err),"\n")
         usage()
@@ -1112,29 +1114,31 @@ insertDefinition() takes in the definition record, disects it for information pe
 def insertDefinition( outputFile, record, classList, permsList ):
     try:
         database = outputFile.cursor()
-        if record == []:
-            pass
-        else:
+        if not record == []:
             defName = getDefinitionName( record[1] )         
             cleanDefinition( outputFile, defName )
             definitionId = int(''.join(map(str, insertDefinitionName(outputFile, defName))))
             for record in record[2:]:
                 LineType = getStatementType(record)
+                # If we enounter a rule statememt.
                 if LineType == 0:
                     statementId = int(''.join(map(str, insertStatementRule( outputFile, record, classList, permsList ))))
                     content = (definitionId, statementId )
                     database.execute('''insert into tb_definition_content values 
                     (?, NULL, ?, NULL, NULL)''', content)
+                # If we encounter an interface statement.
                 elif LineType == 1:
-                    statementId = insertStatementInterface( outputFile, record, classList, permsList )
+                    statementId = int(''.join(map(str, insertStatementInterface( outputFile, record, classList, permsList ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, ?, NULL)''', content)
+                # If we encounter an assignation statement.
                 elif LineType == 2:
                     statementId = int(''.join(map(str, insertStatementAssign( outputFile, record, classList, permsList ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, NULL, ?)''', content)
+                # If we encounter a declaration statement.
                 elif LineType == 3:
                     statementId = int(''.join(map(str, insertStatementDeclare( outputFile, record, classList, permsList ))))
                     content = (definitionId, statementId, )
