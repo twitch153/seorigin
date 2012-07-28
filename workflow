@@ -153,8 +153,6 @@ def getStatementType( line ):
         pass
     elif re.search('^}', line):
         pass
-    elif re.search('^{', line):
-        pass
     elif re.search('\',`', line):
         pass
     # Checks for rule calls
@@ -191,6 +189,8 @@ def getStatementType( line ):
         statementValue = 3
     elif re.search('^attribute', line):
         statementValue = 3
+    elif re.search('^\{', line):
+        statementValue = 3
     else:
         pass
         #print('Unknown line: ' + line)
@@ -209,6 +209,8 @@ def getDeclareType( declareLine ):
             declareType = 2
         elif re.search('^attribute', declareLine):
             declareType = 3
+        elif re.search('^{', declareLine):
+            declareType = 4
         return declareType 
     except Exception as err:
         print("getDeclareType Error: {0}".format(err),"\n")
@@ -405,6 +407,9 @@ def getInterfaceArgs( line ):
     except Exception as err:
         print('\ngetInterfaceArgs() Error: {0}'.format(err),"\n")
 
+'''
+getInterfaceName() grabs the name of the interface statement and returns the name as a string
+'''
 def getInterfaceName( interfaceLine ):
     try:
         name = ''
@@ -660,6 +665,7 @@ def cleanDefine( lines ):
                     continue
                 line = re.sub('\n', '', line)
                 record.append(line)
+        cleanDefine.append(record) # Grabs final record in definition records.
         return cleanDefine
     except Exception as err:
         print("\ncleanDefine() Error: {0}".format(err),"\n")
@@ -930,11 +936,9 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         database = outputFile.cursor()
         args = getInterfaceArgs(line)
         interfaceName = getInterfaceName(line)
-        print(interfaceName)
         interfaceName = (interfaceName, )
         database.execute('''select definitionId from tb_definitionNames where DefinitionName = ?''', interfaceName)
         interfaceId = int(''.join(map(str, database.fetchone())))
-        print(interfaceId)
         argId2 = 0
         argId3 = 0
         argId4 = 0
@@ -948,7 +952,6 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         except IndexError:
             pass
         values = (interfaceId, argId1, argId2, argId3, argId4, argId5)
-        print(values)
         database.execute('''select statementId from tb_statement_interface where interfaceId = ? and 
         arg1labelId = ? and arg2labelId = ? and arg3labelId = ? and arg4labelId = ? and arg5labelId = ?''', values)
         postPopCheck = database.fetchone()
@@ -1159,7 +1162,6 @@ def seorigin( outputFile, lines ):
         createTables( outputFile )
         source_record = cleanSource( lines )
         definition_record = cleanDefine( lines )
-
         for record in definition_record:
             insertDefinition( outputFile, record, classList, permsList )
         for record in source_record:
