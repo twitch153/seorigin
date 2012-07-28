@@ -192,6 +192,7 @@ shmemserv
 shutdown
 sigchld
 siginh
+sighup
 sigkill
 signal
 signull
