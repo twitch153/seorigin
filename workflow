@@ -573,9 +573,7 @@ createTables( outputFile ) creates the necessary tables for the SQLite3 database
 def createTables( outputFile ):
     try:
         database = outputFile.cursor() 
-        database.execute('''PRAGMA foreign_keys=OFF''')   
-        database.execute('''create table if not exists tb_files
-        (FileId Integer primary key AUTOINCREMENT, Filename text)''')
+        database.execute('''PRAGMA foreign_keys=OFF''')
 
         database.execute('''create table if not exists tb_files
         (FileId Integer primary key AUTOINCREMENT, Filename text)''')
@@ -624,7 +622,7 @@ def createTables( outputFile ):
         StatementInterfaceId INTEGER, StatementAssignId INTEGER, FOREIGN KEY(DefinitionId) 
         REFERENCES TB_DEFINITIONNAMES(DefinitionId), FOREIGN KEY(StatementDeclareId) 
         REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementAllowId) 
-        REFERENCES TB_STATEMENT_ALLOW(StatementId), FOREIGN KEY(StatementInterfaceId) 
+        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId) 
         REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId) 
         REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
 
@@ -632,7 +630,7 @@ def createTables( outputFile ):
         (FileId INTEGER NOT NULL, LineNumber INTEGER NOT NULL, StatementDeclareId INTEGER, 
         StatementAllowId INTEGER, StatementInterfaceId INTEGER, StatementAssignId INTEGER, 
         FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
-        FOREIGN KEY(StatementAllowId) REFERENCES TB_STATEMENT_ALLOW(StatementId), 
+        FOREIGN KEY(StatementAllowId) REFERENCES TB_STATEMENT_RULE(StatementId), 
         FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId), 
         FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
 
@@ -936,9 +934,7 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         database = outputFile.cursor()
         args = getInterfaceArgs(line)
         interfaceName = getInterfaceName(line)
-        interfaceName = (interfaceName, )
-        database.execute('''select definitionId from tb_definitionNames where DefinitionName = ?''', interfaceName)
-        interfaceId = int(''.join(map(str, database.fetchone())))
+        interfaceId = int(''.join(map(str, insertDefinitionName(outputFile, interfaceName))))
         argId2 = 0
         argId3 = 0
         argId4 = 0
@@ -1175,7 +1171,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.1: \n")
+    print("Workflow component v1.2.2: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
