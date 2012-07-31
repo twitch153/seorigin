@@ -279,6 +279,13 @@ def getLineNumber( record ):
     if re.search('^# line: ', record):
         record = re.sub('^# line: ', '', record)
         lineNum = record
+    elif re.search('^# Line: ', record):
+        record = re.sub('^# Line: ', '', record)
+        lineNum = record
+    elif re.search('# \w+/.*\.te:\d+', record):
+        print('\nOlder parsed file format detected in source record line: \n' + record,'\n')
+        print('Please use a new input file with the updated parsed format.')
+        sys.exit()
     return lineNum
 
 """
@@ -902,6 +909,10 @@ def insertStatementRule( outputFile, line, classList, permsList ):
     outputFile.commit()
     database.close()
 
+"""
+insertStatementAssign() disects the line that it is given, breaks those parts
+up for proper insertion for tb_statement_assign as well as returning statementId
+"""
 def insertStatementAssign( outputFile, line, classList, permsList ):
     try:
         assLabelId2 = 0
@@ -929,6 +940,11 @@ def insertStatementAssign( outputFile, line, classList, permsList ):
     outputFile.commit()
     database.close()
 
+"""
+insertStatementInterface() disects the line for it's interface args as well as it's name.
+It gets the proper IDs for each variable and inserts them into tb_statement_interface.
+Once this is done it returns the statementId.
+"""
 def insertStatementInterface( outputFile, line, classList, permsList ):
     try:
         database = outputFile.cursor()
@@ -961,10 +977,15 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         return statementId
     except Exception as err:
         print("\ninsertStatementInterface() Error: {0}".format(err),"\n")
+        print('While parsing line: ' + line)
         usage()
     outputFile.commit()
     database.close()
 
+"""
+insertStatementDeclare() disects the line that it is given, breaks the line apart
+up for proper insertion for tb_statement_declare and returns statementId
+"""
 def insertStatementDeclare( outputFile, line, classList, permsList ):
     try:
         aliasId = 0
@@ -993,6 +1014,10 @@ def insertStatementDeclare( outputFile, line, classList, permsList ):
     outputFile.commit()
     database.close()
 
+"""
+insertStatement() takes in the statementType of a line, then depending on the statementType
+it will call a specific insertStatement function and return the statementId for that function.
+"""
 def insertStatement( outputFile, line, statementType, classList, permsList ):
     try: 
         statementId = 0
@@ -1034,15 +1059,25 @@ record information.
 def insertSource( outputFile, record, classList, permsList ):
     try:
         database = outputFile.cursor()
-        if not record == []:       
+        if not record == []:
             fileName = getFileName( record[1] )
             fileId = insertFile( outputFile, fileName )
             if not fileId == 0:
                 fileId = int(''.join(map(str, fileId )))
+            if len(record) == 3:
+                lineNum = getLineNumber( record[1] )
+            elif len(record) == 4:
+                lineNum = getLineNumber( record[2] )
+            else:
+                print('Unknown format of record: \n')
+                for r in record:
+                    print(r)
+                print('\nExiting...')
+                sys.exit()
+            record[0] = re.sub('#', '', record[0])
+            lineNum = int(''.join(map(str, lineNum )))
             recordLine = getSourceLine( record[3] )
             statementType = getStatementType(recordLine)
-            lineNum = getLineNumber( record[2] )
-            lineNum = int(''.join(map(str, lineNum )))
             statementId = insertStatement( outputFile, record[3], statementType, classList, permsList )
             if not statementId == 0:
                 statementId = int(''.join(map(str, statementId ))) 
@@ -1084,7 +1119,8 @@ def insertSource( outputFile, record, classList, permsList ):
                 else:
                     pass
     except Exception as err:
-        print("insertSource() Error: {0}".format(err),"\n")
+        print("insertSource() Error: {0}".format(err))
+        print("While parsing" + record[0] + '.\n')
         usage()
     outputFile.commit()
     database.close()
@@ -1103,7 +1139,7 @@ def cleanDefinition( outputFile, definitionName ):
         database.execute('''select * from tb_definition_content where DefinitionId = ?''', definitionId)
         definitionContent = database.fetchone()
         if not definitionContent == None:
-            database.execute('''delete tb_definition_content where DefinitionId = ?''', definitionId)
+            database.execute('''delete from tb_definition_content where DefinitionId = ?''', definitionId)
     except Exception:
         pass
 
@@ -1114,6 +1150,7 @@ def insertDefinition( outputFile, record, classList, permsList ):
     try:
         database = outputFile.cursor()
         if not record == []:
+            record[0] = re.sub('#', '', record[0])
             defName = getDefinitionName( record[1] )         
             cleanDefinition( outputFile, defName )
             definitionId = int(''.join(map(str, insertDefinitionName(outputFile, defName))))
@@ -1144,7 +1181,8 @@ def insertDefinition( outputFile, record, classList, permsList ):
                     database.execute('''insert into tb_definition_content values
                     (?, ?, NULL, NULL, NULL)''', content)
     except Exception as err:
-        print("insertDefinition() Error: {0}".format(err),"\n") 
+        print("insertDefinition() Error: {0}".format(err))
+        print("While parsing" + record[0] +'.\n')
     outputFile.commit()
     database.close()
 """
