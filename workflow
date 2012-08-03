@@ -625,10 +625,10 @@ def createTables( outputFile ):
         REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(AssignedLabelId) REFERENCES TB_LABELSET(LabelSetId))''')
 
         database.execute('''create table if not exists tb_definition_content
-        (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementAllowId INTEGER,
+        (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementRuleId INTEGER,
         StatementInterfaceId INTEGER, StatementAssignId INTEGER, FOREIGN KEY(DefinitionId)
         REFERENCES TB_DEFINITIONNAMES(DefinitionId), FOREIGN KEY(StatementDeclareId)
-        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementAllowId)
+        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementRuleId)
         REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId)
         REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId)
         REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
@@ -1216,7 +1216,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.4: \n")
+    print("Workflow component v1.2.5: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
