@@ -224,7 +224,7 @@ def getRuleType( ruleLine ):
     ruleType = 0
     if re.search('^allow', ruleLine):
         ruleType = 1
-    elif re.search('^type_.*', ruleLine):
+    elif re.search('^type_transition', ruleLine):
         ruleType = 2
     elif re.search('^dontaudit', ruleLine):
         ruleType = 3
@@ -232,10 +232,12 @@ def getRuleType( ruleLine ):
         ruleType = 4
     elif re.search('^range_transition', ruleLine):
         ruleType = 5
-    elif re.search('^type_member', ruleLine):
-        ruleType = 6
     elif re.search('^neverallow', ruleLine):
+        ruleType = 6
+    elif re.search('^type_member', ruleLine):
         ruleType = 7
+    elif re.search('^type_change', ruleLine):
+        ruleType = 8
     return ruleType
 
 """
