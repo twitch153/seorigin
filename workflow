@@ -845,16 +845,22 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
             labelSet = re.sub('[{}]', '', labelSet)
             labelSet = re.sub('\~', '', labelSet)
             labelSet = re.sub('^ ', '', labelSet)
+            labelIds = []
             labelSet = labelSet.split()
             for label in labelSet:
-                labelId = insertLabel(outputFile, label, classList, permsList)
-                database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
-                labelSetId = database.fetchone()
-                if labelSetId == None:
-                    database.execute('''select max(labelSetId)+1 from tb_labelSet''')
-                    labelSetId = database.fetchone()
-                labelId = int(''.join(map(str,labelId))) # converts Tuple to int
-                labelSetId = int(''.join(map(str,labelSetId)))
+                labelId = int(''.join(map(str, insertLabel(outputFile, label, classList, permsList))))
+                labelIds.append(labelId)
+            labelSetSize = len(labelIds)
+            labelIds = tuple(labelIds)
+            getLabelSetId = 'select labelSetId from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
+            database.execute(getLabelSetId, (labelSetSize, ))
+            labelSetId = database.fetchone() 
+            if labelSetId == None:
+               database.execute('''select max(labelSetId)+1 from tb_labelSet''')
+               labelSetId = int(''.join(map(str, database.fetchone())))
+            for labelId in labelIds:
+                if type(labelSetId) is tuple:
+                    labelSetId = int(''.join(map(str, labelSetId)))
                 values = (labelSetId, labelId, modifier)
                 try:
                     database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
@@ -867,7 +873,8 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
         labelSetId = database.fetchone()    
         return labelSetId
     except Exception as err:
-        print("\ninsertLabelSet() Error: {0}".format(err),"\n")
+        print("\ninsertLabelSet() Error: {0}".format(err))
+        print('When inserting ' + labelSet + ' into tb_labelSet\n')
         usage()
     outputFile.commit()
     database.close()
@@ -1209,7 +1216,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.2: \n")
+    print("Workflow component v1.2.3: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
