@@ -164,6 +164,8 @@ def getStatementType( line ):
         statementValue = 0
     elif re.search('^auditallow', line):
         statementValue = 0
+    elif re.search('^neverallow', line):
+        statementValue = 0
     elif re.search('^range_transition', line):
         statementValue = 0
     elif re.search('^type_member', line):
@@ -232,6 +234,8 @@ def getRuleType( ruleLine ):
         ruleType = 5
     elif re.search('^type_member', ruleLine):
         ruleType = 6
+    elif re.search('^neverallow', ruleLine):
+        ruleType = 7
     return ruleType
 
 """
