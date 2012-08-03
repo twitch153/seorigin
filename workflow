@@ -94,7 +94,7 @@ def parse_cmd_args():
     longOpts = ['input=','output=','help']
 
     opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
-    
+
     inputCheck = True    # Boolean check to see if input location has been set.
     outputCheck = True   # Boolean check to see if output location has been set.
     defInFile = os.path.join(os.environ["PWD"], 'parsed_output.txt') # Default input location.
@@ -135,7 +135,7 @@ def readInput( inputFile ):
     except Exception as err:
         print("\nreadInput() Error: {0}".format(err),"\n")
         usage()
-        
+
     fileLines = f.readlines()
     f.close()
 
@@ -211,7 +211,7 @@ def getDeclareType( declareLine ):
             declareType = 3
         elif re.search('^{', declareLine):
             declareType = 4
-        return declareType 
+        return declareType
     except Exception as err:
         print("getDeclareType Error: {0}".format(err),"\n")
 
@@ -304,7 +304,7 @@ def getSourceFromRule( line ):
             setCheck = True
         elif re.search('}', source):
             setCheck = False
-        if setCheck:        
+        if setCheck:
             source = re.sub('}.*$', '}', source)
         else:
             source = re.sub(' .*$', '', source)
@@ -449,7 +449,7 @@ getAssignedFromAssignation() takes in an assignation line such as:
     typeattribute file domain, foo_t, bar_t;
 and returns the assigned labels in the first case it would simply be: $1
 but if more than one assigned label is found they would be returned as a label set
-in this case it would be: { domain foo_t bar_t } 
+in this case it would be: { domain foo_t bar_t }
 '''
 def getAssignedFromAssignation( line ):
     try:
@@ -579,66 +579,66 @@ createTables( outputFile ) creates the necessary tables for the SQLite3 database
 """
 def createTables( outputFile ):
     try:
-        database = outputFile.cursor() 
+        database = outputFile.cursor()
         database.execute('''PRAGMA foreign_keys=OFF''')
 
         database.execute('''create table if not exists tb_files
         (FileId Integer primary key AUTOINCREMENT, Filename text)''')
 
-        database.execute('''create table if not exists tb_definitionNames 
-        (definitionId Integer primary key AUTOINCREMENT NOT NULL, DefinitionName 
+        database.execute('''create table if not exists tb_definitionNames
+        (definitionId Integer primary key AUTOINCREMENT NOT NULL, DefinitionName
         Text NOT NULL)''')
 
         database.execute('''create table if not exists tb_label
-        (LabelId Integer PRIMARY KEY AUTOINCREMENT NOT NULL, LabelClass INTEGER NOT NULL, 
+        (LabelId Integer PRIMARY KEY AUTOINCREMENT NOT NULL, LabelClass INTEGER NOT NULL,
         Name Text NOT NULL)''')
 
         database.execute('''create table if not exists tb_labelSet
-        (LabelSetId Integer NOT NULL, LabelId NOT NULL, Modifier Integer NOT NULL, 
+        (LabelSetId Integer NOT NULL, LabelId NOT NULL, Modifier Integer NOT NULL,
         primary key(LabelSetID, LabelId), foreign key(LabelId) references tb_label(LabelId))''')
 
-        database.execute('''create table if not exists tb_statement_declare 
-        (StatementId Integer primary key AUTOINCREMENT NOT NULL, DeclarationClass Integer NOT NULL, 
-        TargetId Integer NOT NULL, AliasId Integer, foreign key(TargetId) references tb_labelSet(LabelSetId), 
+        database.execute('''create table if not exists tb_statement_declare
+        (StatementId Integer primary key AUTOINCREMENT NOT NULL, DeclarationClass Integer NOT NULL,
+        TargetId Integer NOT NULL, AliasId Integer, foreign key(TargetId) references tb_labelSet(LabelSetId),
         foreign key(AliasId) references tb_LabelSet(LabelSetId))''')
 
         database.execute('''create table if not exists tb_statement_rule
         (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, RuleClass Integer NOT NULL,
-        SourceId INTEGER NOT NULL, TargetId INTEGER NOT NULL, ClassesId INTEGER NOT NULL, 
-        PrivilegeId INTEGER NOT NULL, FOREIGN KEY(SourceId) REFERENCES TB_LABELSET(LabelSetId), 
-        FOREIGN KEY(TargetId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(ClassesId) 
-        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(PrivilegeId) 
+        SourceId INTEGER NOT NULL, TargetId INTEGER NOT NULL, ClassesId INTEGER NOT NULL,
+        PrivilegeId INTEGER NOT NULL, FOREIGN KEY(SourceId) REFERENCES TB_LABELSET(LabelSetId),
+        FOREIGN KEY(TargetId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(ClassesId)
+        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(PrivilegeId)
         REFERENCES TB_LABELSET(LabelSetId))''')
 
         database.execute('''create table if not exists tb_statement_interface
-        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, InterfaceId INTEGER NOT NULL, 
-        Arg1LabelId INTEGER NOT NULL, Arg2LabelId INTEGER, Arg3LabelId INTEGER, Arg4LabelId INTEGER, 
-        Arg5LabelId INTEGER, FOREIGN KEY(InterfaceId) REFERENCES TB_DEFINITIONNAMES(DefinitionId), 
-        FOREIGN KEY(Arg1LabelId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg2LabelId) 
-        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg3LabelId) REFERENCES TB_LABELSET(LabelSetId), 
-        FOREIGN KEY(Arg4LabelId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg5LabelId) 
+        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, InterfaceId INTEGER NOT NULL,
+        Arg1LabelId INTEGER NOT NULL, Arg2LabelId INTEGER, Arg3LabelId INTEGER, Arg4LabelId INTEGER,
+        Arg5LabelId INTEGER, FOREIGN KEY(InterfaceId) REFERENCES TB_DEFINITIONNAMES(DefinitionId),
+        FOREIGN KEY(Arg1LabelId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg2LabelId)
+        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg3LabelId) REFERENCES TB_LABELSET(LabelSetId),
+        FOREIGN KEY(Arg4LabelId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(Arg5LabelId)
         REFERENCES TB_LABELSET(LabelSetId))''')
 
         database.execute('''create table if not exists tb_statement_assign
-        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, AssignationType INTEGER NOT NULL, 
-        TargetLabelId INTEGER NOT NULL, AssignedLabelId INTEGER NOT NULL, FOREIGN KEY(TargetLabelId) 
+        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, AssignationType INTEGER NOT NULL,
+        TargetLabelId INTEGER NOT NULL, AssignedLabelId INTEGER NOT NULL, FOREIGN KEY(TargetLabelId)
         REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(AssignedLabelId) REFERENCES TB_LABELSET(LabelSetId))''')
 
         database.execute('''create table if not exists tb_definition_content
-        (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementAllowId INTEGER, 
-        StatementInterfaceId INTEGER, StatementAssignId INTEGER, FOREIGN KEY(DefinitionId) 
-        REFERENCES TB_DEFINITIONNAMES(DefinitionId), FOREIGN KEY(StatementDeclareId) 
-        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementAllowId) 
-        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId) 
-        REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId) 
+        (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementAllowId INTEGER,
+        StatementInterfaceId INTEGER, StatementAssignId INTEGER, FOREIGN KEY(DefinitionId)
+        REFERENCES TB_DEFINITIONNAMES(DefinitionId), FOREIGN KEY(StatementDeclareId)
+        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementAllowId)
+        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId)
+        REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId)
         REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
 
-        database.execute('''create table if not exists tb_source 
-        (FileId INTEGER NOT NULL, LineNumber INTEGER NOT NULL, StatementDeclareId INTEGER, 
-        StatementAllowId INTEGER, StatementInterfaceId INTEGER, StatementAssignId INTEGER, 
+        database.execute('''create table if not exists tb_source
+        (FileId INTEGER NOT NULL, LineNumber INTEGER NOT NULL, StatementDeclareId INTEGER,
+        StatementRuleId INTEGER, StatementInterfaceId INTEGER, StatementAssignId INTEGER,
         FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
-        FOREIGN KEY(StatementAllowId) REFERENCES TB_STATEMENT_RULE(StatementId), 
-        FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId), 
+        FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
+        FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId),
         FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
 
     except Exception as err:
@@ -675,7 +675,7 @@ def cleanDefine( lines ):
     except Exception as err:
         print("\ncleanDefine() Error: {0}".format(err),"\n")
         usage()
-        sys.exit() 
+        sys.exit()
 
 """
 cleanSource( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
@@ -718,7 +718,7 @@ def insertFile( outputFile, sourceFile ):
             File = (sourceFile, )
             database.execute('''select * from tb_files where Filename = ?''', File)
             postPopCheck = database.fetchone()
-            if postPopCheck == None:    
+            if postPopCheck == None:
                 database.execute('''insert into tb_files values (NULL, ?)''', File)
             else:
                 pass
@@ -870,7 +870,7 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
             labelId = (labelId, ) # This is necessary to have unless we want to run
                                   # into "parameter not supported" errors.
         database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
-        labelSetId = database.fetchone()    
+        labelSetId = database.fetchone()
         return labelSetId
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err))
@@ -899,13 +899,13 @@ def insertStatementRule( outputFile, line, classList, permsList ):
         classLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, classesLabel, classList, permsList ))))
         prvsLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, privilegesLabel, classList, permsList ))))
         rule = (ruleType, srcLabelSetId, dstLabelSetId, classLabelSetId, prvsLabelSetId)
-        database.execute('''select statementId from tb_statement_rule where RuleClass = ? and sourceId = ? 
+        database.execute('''select statementId from tb_statement_rule where RuleClass = ? and sourceId = ?
         and targetId = ? and classesId = ? and privilegeId = ?''', rule)
         statementCheck = database.fetchone()
         if statementCheck == None:
             database.execute('''insert into tb_statement_rule values (NULL, ?, ?, ?, ?, ?)''', rule)
         else:
-            pass            
+            pass
         database.execute('''select statementId from tb_statement_rule where RuleClass = ? and sourceId = ? 
         and targetId = ? and classesId = ? and privilegeId = ?''', rule)
         statementId = database.fetchone()
@@ -930,13 +930,13 @@ def insertStatementAssign( outputFile, line, classList, permsList ):
         tarLabelId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel, classList, permsList ))))
         assLabelId = int(''.join(map(str, insertLabelSet( outputFile, assignedLabel, classList, permsList ))))
         values = (assignType, tarLabelId, assLabelId)
-        database.execute('''select statementId from tb_statement_assign where AssignationType = ? and targetLabelId = ? 
+        database.execute('''select statementId from tb_statement_assign where AssignationType = ? and targetLabelId = ?
         and assignedLabelId = ?''', values)
         statementCheck = database.fetchone()
         if statementCheck == None:
             database.execute('''insert into tb_statement_assign values (NULL, ?, ?, ?)''', values)
         else:
-            pass            
+            pass
         database.execute('''select statementId from tb_statement_assign where AssignationType = ? and targetLabelId = ? 
         and assignedLabelId = ?''', values)
         statementId = database.fetchone()
@@ -1026,7 +1026,7 @@ insertStatement() takes in the statementType of a line, then depending on the st
 it will call a specific insertStatement function and return the statementId for that function.
 """
 def insertStatement( outputFile, line, statementType, classList, permsList ):
-    try: 
+    try:
         statementId = 0
         database = outputFile.cursor()
         # If we encounter a rule statement.
@@ -1092,7 +1092,7 @@ def insertSource( outputFile, record, classList, permsList ):
             # If we find a rule statement
             if statementType == 0:
                 database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-                statementAllowId = ?''', source)
+                statementRuleId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
                     database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
@@ -1101,7 +1101,7 @@ def insertSource( outputFile, record, classList, permsList ):
             # If we find an interface statement
             elif statementType == 1:
                 database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
-                statementAllowId = ?''', source)
+                statementInterfaceId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
                     database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
@@ -1158,7 +1158,7 @@ def insertDefinition( outputFile, record, classList, permsList ):
         database = outputFile.cursor()
         if not record == []:
             record[0] = re.sub('#', '', record[0])
-            defName = getDefinitionName( record[1] )         
+            defName = getDefinitionName( record[1] )
             cleanDefinition( outputFile, defName )
             definitionId = int(''.join(map(str, insertDefinitionName(outputFile, defName))))
             for record in record[2:]:
@@ -1216,7 +1216,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.3: \n")
+    print("Workflow component v1.2.4: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
