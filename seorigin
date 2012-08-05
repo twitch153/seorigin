@@ -240,6 +240,10 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -250,27 +254,36 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
   prv = (prv, )
   db.execute('''select labelId from tb_label where Name = ?''', prv)
   prvLblId = db.fetchone()
+  prv = str(''.join(map(str, prv)))
+  if prvLblId == None:
+    print('%s not found in tb_label of seorigin database.' % prv)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
   prvLblSetId = int(''.join(map(str, db.fetchone())))
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 1 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
     print('Statement: "allow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
     sys.exit()
@@ -292,6 +305,10 @@ def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -302,27 +319,36 @@ def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
   prv = (prv, )
   db.execute('''select labelId from tb_label where Name = ?''', prv)
   prvLblId = db.fetchone()
+  prv = str(''.join(map(str, prv)))
+  if prvLblId == None:
+    print('%s not found in tb_label of seorigin database.' % prv)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
   prvLblSetId = int(''.join(map(str, db.fetchone())))
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 6 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
     print('\nStatement: "neverallow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
     sys.exit()
@@ -345,6 +371,10 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -355,27 +385,36 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
   prv = (prv, )
   db.execute('''select labelId from tb_label where Name = ?''', prv)
   prvLblId = db.fetchone()
+  prv = str(''.join(map(str, prv)))
+  if prvLblId == None:
+    print('%s not found in tb_label of seorigin database.' % prv)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
   prvLblSetId = int(''.join(map(str, db.fetchone())))
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 4 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
     print('\nStatement: "auditallow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
     sys.exit()
@@ -392,11 +431,16 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
   print('  -> auditallow %s %s:%s %s' % (src, oldtgt, cls, prv))
 
 def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
+
   db = database.cursor()
   src = (src, )
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -407,27 +451,36 @@ def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_label of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
   prv = (prv, )
   db.execute('''select labelId from tb_label where Name = ?''', prv)
   prvLblId = db.fetchone()
+  prv = str(''.join(map(str, prv)))
+  if prvLblId == None:
+    print('%s not found in tb_label of seorigin database.' % prv)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
   prvLblSetId = int(''.join(map(str, db.fetchone())))
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 3 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
     print('\nStatement: "dontaudit %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
     sys.exit()
@@ -444,11 +497,16 @@ def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
   print('  -> dontaudit %s %s:%s %s' % (src, oldtgt, cls, prv))
 
 def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
+
   db = database.cursor()
   src = (src, )
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -459,48 +517,62 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
-  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+  ntp = (ntp, )
+  db.execute('''select labelId from tb_label where Name = ?''', ntp)
+  ntpLblId = db.fetchone()
+  ntp = str(''.join(map(str, ntp)))
+  if ntpLblId == None:
+    print('%s not found in tb_label of seorigin database.' % ntp)
+    sys.exit()
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
+  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 2 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
-  ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
+  ruleId = db.fetchone())
   if ruleId == None:
-    print('\nStatement: "type_transition %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
+    print('\nStatement: "type_transition %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select fileId from tb_source where statementRuleId = ?''', ruleId)
   fileId = db.fetchone()
   if fileId == None:
-    print('type_transition %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, prv))
+    print('type_transition %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select lineNumber from tb_source where statementRuleId = ?''', ruleId)
   lineNum = str(''.join(map(str, db.fetchone())))
   db.execute('''select Filename from tb_files where fileId = ?''', fileId)
   fileName = str(''.join(map(str, db.fetchone())))
   print(fileName +":" + lineNum)
-  print('  -> type_transition %s %s:%s %s' % (src, oldtgt, cls, prv))
+  print('  -> type_transition %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
 def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
+
   db = database.cursor()
   src = (src, )
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -511,48 +583,62 @@ def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
-  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+  ntp = (ntp, )
+  db.execute('''select labelId from tb_label where Name = ?''', ntp)
+  ntpLblId = db.fetchone()
+  ntp = str(''.join(map(str, ntp)))
+  if ntpLblId == None:
+    print('%s not found in tb_label of seorigin database.' % ntp)
+    sys.exit()
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
+  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 7 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
-    print('\nStatement: "type_member %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
+    print('\nStatement: "type_member %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select fileId from tb_source where statementRuleId = ?''', ruleId)
   fileId = db.fetchone()
   if fileId == None:
-    print('type_member %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, prv))
+    print('type_member %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select lineNumber from tb_source where statementRuleId = ?''', ruleId)
   lineNum = str(''.join(map(str, db.fetchone())))
   db.execute('''select Filename from tb_files where fileId = ?''', fileId)
   fileName = str(''.join(map(str, db.fetchone())))
   print(fileName +":" + lineNum)
-  print('  -> type_member %s %s:%s %s' % (src, oldtgt, cls, prv))
+  print('  -> type_member %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
 def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
+
   db = database.cursor()
   src = (src, )
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -563,45 +649,56 @@ def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)))
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_lable of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
-  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+  ntp = (ntp, )
+  db.execute('''select labelId from tb_label where Name = ?''', ntp)
+  ntpLblId = db.fetchone()
+  ntp = str(''.join(map(str, ntp)))
+  if ntpLblId == None:
+    print('%s not found in tb_label of seorigin database.' % ntp)
+    sys.exit()
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
+  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 8 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  prv = str(''.join(map(str, prv)))
   if ruleId == None:
-    print('\nStatement: "type_change %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
+    print('\nStatement: "type_change %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select fileId from tb_source where statementRuleId = ?''', ruleId)
   fileId = db.fetchone()
   if fileId == None:
-    print('type_change %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, prv))
+    print('type_change %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, ntp))
     sys.exit()
   db.execute('''select lineNumber from tb_source where statementRuleId = ?''', ruleId)
   lineNum = str(''.join(map(str, db.fetchone())))
   db.execute('''select Filename from tb_files where fileId = ?''', fileId)
   fileName = str(''.join(map(str, db.fetchone())))
   print(fileName +":" + lineNum)
-  print('  -> type_change %s %s:%s %s' % (src, oldtgt, cls, prv))
+  print('  -> type_change %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
+# TODO Finish workflowFindOrigin_allowrole()
 def workflowFindOrigin_allowrole(database, srl, trl):
   print("Looking for: allow %s %s" % (srl, trl))
 
+# TODO finish workflowFindOrigin_role_tranisition()
 def workflowFindOrigin_role_transition(database, srl, src, trl):
   print("Looking for: role_transition %s %s %s" % (srl, src, trl))
 
@@ -611,6 +708,10 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   oldtgt = ''
   db.execute('''select labelId from tb_label where Name = ?''', src)
   srcLblId = db.fetchone()
+  src = str(''.join(map(str, src)))
+  if srcLblId == None:
+    print('%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
@@ -621,27 +722,36 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
+  tgt = str(''.join(map(str, tgt)
+  if tgtLblId == None:
+    print('%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
+  if type(oldtgt) == tuple:
+    oldtgt = str(''.join(map(str, oldtgt)))
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
   tgtLblSetId = int(''.join(map(str, db.fetchone())))
   cls = (cls, )
   db.execute('''select labelId from tb_label where Name = ?''', cls)
   clsLblId = db.fetchone()
+  cls = str(''.join(map(str, cls)))
+  if clsLblId == None:
+    print('%s not found in tb_label of seorigin database.' % cls)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
   clsLblSetId = int(''.join(map(str, db.fetchone())))
   rng = (rng, )
   db.execute('''select labelId from tb_label where Name = ?''', rng)
   rngLblId = db.fetchone()
+  rng = str(''.join(map(str, rng)))
+  if rngLblId == None:
+    print('%s not found in tb_label of seorigin database.' % rng)
+    sys.exit()
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', rngLblId)
   rngLblSetId = int(''.join(map(str, db.fetchone())))
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, rngLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 5 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if type(oldtgt) == tuple:
-    oldtgt = str(''.join(map(str, oldtgt)))
-  cls = str(''.join(map(str, cls)))
-  rng = str(''.join(map(str, rng)))
   if ruleId == None:
     print('\nStatement: "range_transition %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, rng))
     sys.exit()
@@ -658,9 +768,45 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   print('  -> range_transition %s %s:%s %s' % (src, oldtgt, cls, rng))
 
 def workflowFindOrigin_typeattribute(database, src, tgt):
-  print("Looking for: typeattribute %s %s (or type %s, %s)" % (src, tgt, src, tgt))
-
-
+  db = database.cursor()
+  src = (src,)
+  tgt = (tgt,)
+  db.execute('''select labelId from tb_label where Name = ?''', src)
+  src = str(''.join(map(str, src)))
+  srcId = db.fetchone()
+  if srcId == None:
+    print('\n%s not found in tb_label of seorigin database.' % src)
+    sys.exit()
+  db.execute('''select labelId from tb_label where Name = ?''', tgt)
+  tgt = str(''.join(map(str, tgt)))
+  tgtId = db.fetchone()
+  if tgtId == None:
+    print('\n%s not found in tb_label of seorigin database.' % tgt)
+    sys.exit()
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcId)
+  srcSetId = int(''.join(map(str, db.fetchone())))
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtId)
+  tgtSetId = int(''.join(map(str, db.fetchone())))
+  assignIds = (srcSetId, tgtSetId)
+  db.execute('''select statementId from tb_statement_assign where AssignationType = 1 or 6 and 
+  TargetId = ? AssignedId = ?''', assignIds)
+  assignId = db.fetchone()
+  if assignId == None:
+    print('\nStatement: "typeattribute %s %s (or type %s, %s)"' % (src, tgt, src, tgt))
+    print('is non-existent in seorigin database.')
+    sys.exit()
+  db.execute('''select fileId from tb_source where statementAssignId = ?''', assignId)
+  fileId = db.fetchone()
+  if fileId == None:
+    print('\ntypeattribute %s %s (or type %s, %s) not found in any source files.' %(src, tgt, src, tgt))
+    sys.exit()
+  db.execute('''select lineNumber from tb_source where statementAssignId = ?''', assignId)
+  lineNum = str(''.join(map(str, db.fetchone())))
+  db.execute('''select Filename from tb_files where fileId = ?''', fileId)
+  fileName = str(''.join(map(str, db.fetchone())))
+  print(fileName +":" + lineNum)
+  print('  -> typeattribute %s %s (or type %s, %s)' % (src, tgt, src, tgt))
+ 
 """
 Run main function if no functions are explicitly called.
 """
