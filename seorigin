@@ -247,7 +247,7 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src,)
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -312,7 +312,7 @@ def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -378,7 +378,7 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -444,7 +444,7 @@ def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -510,7 +510,7 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -546,7 +546,7 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 2 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
-  ruleId = db.fetchone())
+  ruleId = db.fetchone()
   if ruleId == None:
     print('\nStatement: "type_transition %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, ntp))
     sys.exit()
@@ -576,7 +576,7 @@ def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -642,7 +642,7 @@ def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
@@ -703,6 +703,7 @@ def workflowFindOrigin_role_transition(database, srl, src, trl):
   print("Looking for: role_transition %s %s %s" % (srl, src, trl))
 
 def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
+
   db = database.cursor()
   src = (src, )
   oldtgt = ''
@@ -715,14 +716,14 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
   srcLblSetId = int(''.join(map(str, db.fetchone())))
   if tgt == 'self':
-    tgt = src
+    tgt = (src, )
     oldtgt = 'self'
   else:
     tgt = (tgt, )
     oldtgt = tgt
   db.execute('''select labelId from tb_label where Name = ?''', tgt)
   tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)
+  tgt = str(''.join(map(str, tgt)))
   if tgtLblId == None:
     print('%s not found in tb_label of seorigin database.' % tgt)
     sys.exit()
@@ -768,6 +769,7 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   print('  -> range_transition %s %s:%s %s' % (src, oldtgt, cls, rng))
 
 def workflowFindOrigin_typeattribute(database, src, tgt):
+
   db = database.cursor()
   src = (src,)
   tgt = (tgt,)
