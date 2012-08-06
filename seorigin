@@ -493,7 +493,6 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
   clsLblSetId = 0
   ntpLblSetId = 0
   db = database.cursor()
-  src = (src, )
   oldtgt = ''
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
@@ -545,7 +544,6 @@ def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
   clsLblSetId = 0
   ntpLblSetId = 0
   db = database.cursor()
-  src = (src, )
   oldtgt = ''
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
@@ -597,7 +595,6 @@ def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
   clsLblSetId = 0
   ntpLblSetId = 0
   db = database.cursor()
-  src = (src, )
   oldtgt = ''
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
@@ -658,7 +655,6 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   rngLblSetId = 0
   oldtgt = ''
   db = database.cursor()
-
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
   else:
