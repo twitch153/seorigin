@@ -1167,9 +1167,9 @@ def cleanDefinition( outputFile, definitionName ):
         definitionName = (definitionName, )
         database.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
         definitionId = database.fetchone()
-        database.execute('''select * from tb_definition_content where DefinitionId = ? ''', definitionId)
+        database.execute('''select StatementDeclareId, StatementRuleId, StatementInterfaceId, StatementAssignId from 
+        tb_definition_content where DefinitionId = ? ''', definitionId)
         definitionContent = database.fetchone()
-        print(definitionContent)
         if not definitionContent == None:
             database.execute('''delete from tb_definition_content where DefinitionId = ?''', definitionId)
     except Exception:
@@ -1217,6 +1217,7 @@ def insertDefinition( outputFile, record ):
         print("While parsing" + record[0] +'.\n')
     outputFile.commit()
     database.close()
+
 """
 seorigin( outputFile (Sqlite3 database), lines (String) ) creates the seorigin database by calling the necessary functions to create and write the seorigin database.
 """
