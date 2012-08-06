@@ -130,15 +130,13 @@ def parse_cmd_args():
     return( inputFile, outputFile )
 	
 """
-readInput( inputFile ) reads in the specified file. If a file does not exist it will shoot an exception and print out
-usage().
+readInput( inputFile (File) ) reads in the specified file. If a file does not exist it will shoot an exception.
 """
 def readInput( inputFile ):
     try:
         f=open(inputFile, 'r') # This creates the function for opening the file, and assigns it to f.
     except Exception as err:
         print("\nreadInput() Error: {0}".format(err),"\n")
-        usage()
 
     fileLines = f.readlines()
     f.close()
@@ -146,7 +144,7 @@ def readInput( inputFile ):
     return fileLines
 
 """
-getStatementType( lines ) read through the lines of the input and searches for each statement type and assigns
+getStatementType( line (String) ) read through a line of the input and searches for each statement type and assigns
 a certain value to each statement and then returns the value of the statement.
 """
 def getStatementType( line ):
@@ -203,8 +201,8 @@ def getStatementType( line ):
     return statementValue
 
 """
-getDeclareFromType() goes through the lines of declaration statements and returns the declare type
-of the declaration line.
+getDeclareFromType( declareLine (String) ) goes through the lines of declaration statements and returns the declare type
+of the declaration line as int.
 """
 def getDeclareType( declareLine ):
     try:
@@ -222,7 +220,7 @@ def getDeclareType( declareLine ):
         print("getDeclareType Error: {0}".format(err),"\n")
 
 """
-getRuleType() goes through the lines of rules statements and returns the rule type.
+getRuleType( ruleLine (String) ) goes through the lines of rules statements and returns the rule type as an int.
 """
 def getRuleType( ruleLine ):
     ruleType = 0
@@ -245,7 +243,7 @@ def getRuleType( ruleLine ):
     return ruleType
 
 """
-getFileName() goes through a source record and returns the file name.
+getFileName( record (String) ) goes through a source record and returns the file name.
 """
 def getFileName( record ):
     sourceFile = ''
@@ -255,7 +253,7 @@ def getFileName( record ):
     return sourceFile
 
 """
-getDefinitionName() goes through a definition record and returns the definition name.
+getDefinitionName( record (String) ) goes through a definition record and returns the definition name.
 """
 def getDefinitionName( record ):
     definitionName = ''
@@ -265,7 +263,8 @@ def getDefinitionName( record ):
     return definitionName
 
 """
-getSourceLine() detects the source line of a source record, parses it out using regular expressions, then returns it.
+getSourceLine( record (String) ) detects the source line of a source record, parses it out using regular expressions,
+then returns it.
 """
 def getSourceLine( record ):
     recordLine = ''
@@ -282,7 +281,7 @@ def getSourceLine( record ):
     return record
 
 """
-getLineNumber() goes through a source record and returns the line number.
+getLineNumber( record (String) ) goes through a source record and returns the line number.
 """
 def getLineNumber( record ):
     lineNum = 0
@@ -299,7 +298,7 @@ def getLineNumber( record ):
     return lineNum
 
 """
-getSourceFromRule() goes through a rule statement such as this:
+getSourceFromRule( line (String) ) goes through a rule statement such as this:
 
     "allow $1 $2:file { mmap_file_perms ioctl lock };"
 
@@ -321,10 +320,9 @@ def getSourceFromRule( line ):
         return source
     except Exception as err:
         print('\ngetSourceFromRule() Error{0}'.format(err),'\n')
-        usage()
 
 """
-getDestinationFromRule() goes through a rule statement such as this:
+getDestinationFromRule( line (String) ) goes through a rule statement such as this:
 
     "allow $1 $2:file { mmap_file_perms ioctl lock };"
 
@@ -357,7 +355,7 @@ def getDestinationFromRule( line ):
     return destination
 
 """
-getClassFromRule() goes through a rule statement such as this:
+getClassFromRule( line (String) ) goes through a rule statement such as this:
 
     "allow $1 $2:file { mmap_file_perms ioctl lock };"
 
@@ -379,7 +377,7 @@ def getClassesFromRule( line ):
     return classes
 
 """
-getPrivilegesFromRule() goes through a rule statement such as this:
+getPrivilegesFromRule( line (String) ) goes through a rule statement such as this:
 
     "allow $1 $2:file { mmap_file_perms ioctl lock };"
 
@@ -401,10 +399,9 @@ def getPrivilegesFromRule( line ):
         return permissions
     except Exception as err:
         print("\ngetPrivilegesFromRule() Error{0}".format(err),"\n")
-        usage()
 
 """
-getInterfaceArgs() reads in the line of an interface statement and returns in interface
+getInterfaceArgs( line (String) ) reads in the line of an interface statement and returns in interface
 arguments as a list. 
 If we get an interface statement such as:
     domain_entry_file($1,$2)
@@ -425,7 +422,7 @@ def getInterfaceArgs( line ):
         print('\ngetInterfaceArgs() Error: {0}'.format(err),"\n")
 
 '''
-getInterfaceName() grabs the name of the interface statement and returns the name as a string
+getInterfaceName( interfaceLine (String) ) grabs the name of the interface statement and returns the name as a string
 '''
 def getInterfaceName( interfaceLine ):
     try:
@@ -436,7 +433,7 @@ def getInterfaceName( interfaceLine ):
         print('\ngetInterfaceName() Error: {0}'.format(err),'\n')
 
 '''
-getTargetFromAssignation() takes in an assignation line such as:
+getTargetFromAssignation( line (String) ) takes in an assignation line such as:
     role system_r types $1;
         or
     typeattribute file domain, foo_t, bar_t;
@@ -453,7 +450,7 @@ def getTargetFromAssignation( line ):
         print('\ngetTargetFromAssignation() Error: {0}'.format(err),"\n")
 
 '''
-getAssignedFromAssignation() takes in an assignation line such as:
+getAssignedFromAssignation( line (String) ) takes in an assignation line such as:
     role system_r types $1;
         or
     typeattribute file domain, foo_t, bar_t;
@@ -481,7 +478,7 @@ def getAssignedFromAssignation( line ):
         print('\ngetAssignedFromAssignation() Error: {0}'.format(err),"\n")
 
 '''
-getTargetFromDeclare() takes in a declaration line such as:
+getTargetFromDeclare( declareLine (String) ) takes in a declaration line such as:
     role system_r
 and returns the target of the declaration, which would be: system_r
 '''
@@ -496,7 +493,7 @@ def getTargetFromDeclare( declareLine ):
         print("\ngetTargetFromDeclare() Error: {0}".format(err),"\n")
 
 '''
-getAliasFromDeclare() takes in a declaration line like this: 
+getAliasFromDeclare( declareLine (String) ) takes in a declaration line like this: 
     role system_r alias $1
 and returns the alias, which would be: $1
 '''
@@ -511,7 +508,7 @@ def getAliasFromDeclare( declareLine ):
 
 
 '''
-getAssignationType() takes in a statement assign line from the input and returns the type
+getAssignationType( assignLine (String) ) takes in a statement assign line from the input and returns the type
 of assign statement it is in a numerical value.
 '''
 def getAssignationType( assignLine ):
@@ -558,8 +555,26 @@ def getPermsList():
         result.append(List)
     return result
 
+'''
+Globaly declares classList for later use in the script.
+'''
+try:
+    classList = getClassList()
+except Exception as err:
+    print("Error declaring global variable classList: {0}".format(err),"\n")
+    sys.exit()
+
+'''
+Globaly declares permsList for later use in the script.
+'''
+try:
+    permsList = getPermsList()
+except Exception as err:
+    print("Error declaring global variable permsList: {0}".format(err),"\n")
+    sys.exit()
+
 """
-getLabelClass() read through the labels of the input and searches for each statement type and assigns
+getLabelClass( label(File), classList (File), permList(File) ) read through the labels of the input and searches for each statement type and assigns
 a certain value to each label and then returns the value of the label.
 """
 def getLabelClass( label, classList, permsList ):
@@ -585,12 +600,11 @@ def getLabelClass( label, classList, permsList ):
     return labelClass
 
 """
-createTables( outputFile ) creates the necessary tables for the SQLite3 database
+createTables( outputFile (sqlite3 database) ) creates the necessary tables for the SQLite3 database
 """
 def createTables( outputFile ):
     try:
         database = outputFile.cursor()
-        database.execute('''PRAGMA foreign_keys=OFF''')
 
         database.execute('''create table if not exists tb_files
         (FileId Integer primary key AUTOINCREMENT, Filename text)''')
@@ -653,12 +667,11 @@ def createTables( outputFile ):
 
     except Exception as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
 """
-cleanDefine( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
+cleanDefine( lines (String) ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
 the definition records and returns them in a clean array.
 """
 def cleanDefine( lines ):
@@ -684,11 +697,11 @@ def cleanDefine( lines ):
         return cleanDefine
     except Exception as err:
         print("\ncleanDefine() Error: {0}".format(err),"\n")
-        usage()
+        print("With record:\n " + record)
         sys.exit()
 
 """
-cleanSource( line ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
+cleanSource( lines (String) ) reads in lines of the input files and "cleans" them up, removing any unnecessary new lines for
 source records and returns them in a clean array.
 """
 def cleanSource( lines ):
@@ -713,11 +726,12 @@ def cleanSource( lines ):
         return cleanSource
     except Exception as err:
         print("\ncleanSource() Error: {0}".format(err),"\n")
-        usage()
+        print("With record:\n " + record)
         sys.exit()
 
 """
-insertFile() writes specific information from the input file to tb_files in the seorigin db.
+insertFile( outputFile (Sqlite3 database), sourceFile (String) ) writes specific information from the input
+file to tb_files in the seorigin db.
 """
 def insertFile( outputFile, sourceFile ):
     try:
@@ -737,12 +751,11 @@ def insertFile( outputFile, sourceFile ):
         return fileId
     except Exception as err:
         print("\ninsertFile() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
 """
-insertDefinitionNames() writes specific information from the input file to tb_definitionNames in the seorigin db.
+insertDefinitionNames( outputFile (Sqlite3 database), definitionCall (String) ) writes specific information from the input file to tb_definitionNames in the seorigin db.
 """
 def insertDefinitionName( outputFile, definitionCall ):
     try:
@@ -764,14 +777,13 @@ def insertDefinitionName( outputFile, definitionCall ):
         return definitionId
     except Exception as err:
         print("\ninsertDefinitionNames() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
 """
-insertLabel() writes specific information from the input file to tb_label in the seorigin db.
+insertLabel( outputFile (Sqlite3 database), label (String) ) writes specific information from the input file to tb_label in the seorigin db.
 """
-def insertLabel( outputFile, label, classList, permsList ):
+def insertLabel( outputFile, label ):
     try:
         database = outputFile.cursor()
         labelClass = getLabelClass(label, classList, permsList)
@@ -790,13 +802,11 @@ def insertLabel( outputFile, label, classList, permsList ):
         return labelId
     except Exception as err:
         print("\ninsertLabel() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
 """
-prepLabelset() is used to prepare tb_labelSet for population of tb_labelSet if no
-values are found inside the table.
+prepLabelset( outputFile (Sqlite3 database), labelId (integer), modifier (integer) ) is used to prepare tb_labelSet for population of tb_labelSet if no values are found inside the table.
 """
 def prepLabelSet( outputFile, labelId, modifier ):
     try:
@@ -811,11 +821,14 @@ def prepLabelSet( outputFile, labelId, modifier ):
     database.close()
 
 """
-insertLabelSet() writes label set values to tb_labelSet based on the label set which can be one label:
-'foo_t' or a label set such as: '{ foo_t bar_t }' in this case the label set would have one label set
-id to match the label set which would include the labelIds of the labels inside.
+insertLabelSet( outputFile (Sqlite3 database), labelSet (String) ) writes label set values to tb_labelSet based on the label set which can be one label:
+            'foo_t' 
+or a label set such as: 
+            '{ foo_t bar_t }' 
+in this case the label set would have one label set id to match the label set which would
+include the labelIds of the labels inside.
 """
-def insertLabelSet( outputFile, labelSet, classList, permsList ):
+def insertLabelSet( outputFile, labelSet ):
     try:
         database = outputFile.cursor()
         modifier = 1
@@ -829,7 +842,7 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
             if label == '~':
                 pass
             else:
-                labelId = insertLabel(outputFile, label, classList, permsList)
+                labelId = insertLabel(outputFile, label )
                 database.execute('''select * from tb_labelSet''')
                 popCheck = database.fetchone()
                 if popCheck == None:
@@ -854,7 +867,7 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
             labelIds = []
             labelSet = labelSet.split()
             for label in labelSet:
-                labelId = int(''.join(map(str, insertLabel(outputFile, label, classList, permsList))))
+                labelId = int(''.join(map(str, insertLabel(outputFile, label ))))
                 database.execute('''select * from tb_labelSet''')
                 popCheck = database.fetchone()
                 if popCheck == None:
@@ -901,7 +914,6 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err))
         print('When inserting ' + labelSet + ' into tb_labelSet\n')
-        usage()
     outputFile.commit()
     database.close()
 
@@ -909,7 +921,7 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
 insertStatementRule() disects the line that it is given, breaks those parts
 up for proper insertion for tb_statement_rule as well as returning statementId
 """
-def insertStatementRule( outputFile, line, classList, permsList ):
+def insertStatementRule( outputFile, line ):
     try:
         setCheck = False
         database = outputFile.cursor()
@@ -920,10 +932,10 @@ def insertStatementRule( outputFile, line, classList, permsList ):
         ruleType = getRuleType(line)
         if re.search("^.*self.*$", destinationLabel):
             destinationLabel = re.sub('self', sourceLabel, destinationLabel)
-        srcLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, sourceLabel, classList, permsList ))))
-        dstLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, destinationLabel, classList, permsList ))))
-        classLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, classesLabel, classList, permsList ))))
-        prvsLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, privilegesLabel, classList, permsList ))))
+        srcLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, sourceLabel ))))
+        dstLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, destinationLabel ))))
+        classLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, classesLabel ))))
+        prvsLabelSetId = int(''.join(map(str, insertLabelSet( outputFile, privilegesLabel ))))
         rule = (ruleType, srcLabelSetId, dstLabelSetId, classLabelSetId, prvsLabelSetId)
         database.execute('''select statementId from tb_statement_rule where RuleClass = ? and sourceId = ?
         and targetId = ? and classesId = ? and privilegeId = ?''', rule)
@@ -938,7 +950,6 @@ def insertStatementRule( outputFile, line, classList, permsList ):
         return statementId
     except Exception as err:
         print("\ninsertStatementRule() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
@@ -946,15 +957,15 @@ def insertStatementRule( outputFile, line, classList, permsList ):
 insertStatementAssign() disects the line that it is given, breaks those parts
 up for proper insertion for tb_statement_assign as well as returning statementId
 """
-def insertStatementAssign( outputFile, line, classList, permsList ):
+def insertStatementAssign( outputFile, line ):
     try:
         assLabelId2 = 0
         database = outputFile.cursor()
         assignType = getAssignationType( line )
         assignedLabel = getAssignedFromAssignation( line )
         targetLabel = getTargetFromAssignation( line )
-        tarLabelId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel, classList, permsList ))))
-        assLabelId = int(''.join(map(str, insertLabelSet( outputFile, assignedLabel, classList, permsList ))))
+        tarLabelId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
+        assLabelId = int(''.join(map(str, insertLabelSet( outputFile, assignedLabel ))))
         values = (assignType, tarLabelId, assLabelId)
         database.execute('''select statementId from tb_statement_assign where AssignationType = ? and targetLabelId = ?
         and assignedLabelId = ?''', values)
@@ -969,7 +980,6 @@ def insertStatementAssign( outputFile, line, classList, permsList ):
         return statementId
     except Exception as err:
         print("\ninsertStatementAssign() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
@@ -978,7 +988,7 @@ insertStatementInterface() disects the line for it's interface args as well as i
 It gets the proper IDs for each variable and inserts them into tb_statement_interface.
 Once this is done it returns the statementId.
 """
-def insertStatementInterface( outputFile, line, classList, permsList ):
+def insertStatementInterface( outputFile, line ):
     try:
         database = outputFile.cursor()
         args = getInterfaceArgs(line)
@@ -988,12 +998,12 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
         argId3 = 0
         argId4 = 0
         argId5 = 0
-        argId1 = int(''.join(map(str, insertLabelSet( outputFile, args[0], classList, permsList ))))
+        argId1 = int(''.join(map(str, insertLabelSet( outputFile, args[0] ))))
         try:
-            argId2 = int(''.join(map(str, insertLabelSet( outputFile, args[1], classList, permsList ))))
-            argId3 = int(''.join(map(str, insertLabelSet( outputFile, args[2], classList, permsList ))))
-            argId4 = int(''.join(map(str, insertLabelSet( outputFile, args[3], classList, permsList ))))
-            argId5 = int(''.join(map(str, insertLabelSet( outputFile, args[4], classList, permsList ))))
+            argId2 = int(''.join(map(str, insertLabelSet( outputFile, args[1] ))))
+            argId3 = int(''.join(map(str, insertLabelSet( outputFile, args[2] ))))
+            argId4 = int(''.join(map(str, insertLabelSet( outputFile, args[3] ))))
+            argId5 = int(''.join(map(str, insertLabelSet( outputFile, args[4] ))))
         except IndexError:
             pass
         values = (interfaceId, argId1, argId2, argId3, argId4, argId5)
@@ -1011,7 +1021,6 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
     except Exception as err:
         print("\ninsertStatementInterface() Error: {0}".format(err),"\n")
         print('While parsing line: ' + line)
-        usage()
     outputFile.commit()
     database.close()
 
@@ -1019,16 +1028,16 @@ def insertStatementInterface( outputFile, line, classList, permsList ):
 insertStatementDeclare() disects the line that it is given, breaks the line apart
 up for proper insertion for tb_statement_declare and returns statementId
 """
-def insertStatementDeclare( outputFile, line, classList, permsList ):
+def insertStatementDeclare( outputFile, line ):
     try:
         aliasId = 0
         database = outputFile.cursor()
         declareType = getDeclareType( line )
         targetLabel = getTargetFromDeclare( line )
-        targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel, classList, permsList ))))
+        targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
         if re.search('alias', line):
             aliasLabel = getAliasFromDeclare( line )
-            aliasId = int(''.join(map(str, insertLabelSet( outputFile, aliasLabel, classList, permsList ))))
+            aliasId = int(''.join(map(str, insertLabelSet( outputFile, aliasLabel ))))
         values = (declareType, targetId, aliasId)
         database.execute('''select statementId from tb_statement_declare where DeclarationClass = ?
         and TargetId = ? and AliasId = ?''', values)
@@ -1043,7 +1052,6 @@ def insertStatementDeclare( outputFile, line, classList, permsList ):
         return StatementId
     except Exception as err:
         print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
-        usage()
     outputFile.commit()
     database.close()
 
@@ -1051,26 +1059,25 @@ def insertStatementDeclare( outputFile, line, classList, permsList ):
 insertStatement() takes in the statementType of a line, then depending on the statementType
 it will call a specific insertStatement function and return the statementId for that function.
 """
-def insertStatement( outputFile, line, statementType, classList, permsList ):
+def insertStatement( outputFile, line, statementType ):
     try:
         statementId = 0
         database = outputFile.cursor()
         # If we encounter a rule statement.
         if statementType == 0:
-            statementId = insertStatementRule( outputFile, line, classList, permsList )
+            statementId = insertStatementRule( outputFile, line )
         # If we encounter an interface statement.
         elif statementType == 1:
-            insertStatementInterface( outputFile, line, classList, permsList )
+            insertStatementInterface( outputFile, line )
         # If we encounter an assign statement.
         elif statementType == 2:
-            statementId = insertStatementAssign( outputFile, line, classList, permsList )
+            statementId = insertStatementAssign( outputFile, line )
         # If we enounter a declare statememt.
         elif statementType == 3:
-            statementId = insertStatementDeclare( outputFile, line, classList, permsList )
+            statementId = insertStatementDeclare( outputFile, line )
         return statementId
     except Exception as err:
         print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
-        usage()
 
 """
 writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
@@ -1081,7 +1088,6 @@ def writeOut( outputFile, output ):
         parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
     except Exception as err:
         print("\n\nwriteOut() Error: {0}".format(err),"\n\n")
-        usage()
     parsedOut.write(output)
     parsedOut.close()
 
@@ -1089,7 +1095,7 @@ def writeOut( outputFile, output ):
 insertSource() calls all necessary commands required to populate tables with source 
 record information.
 """
-def insertSource( outputFile, record, classList, permsList ):
+def insertSource( outputFile, record ):
     try:
         database = outputFile.cursor()
         if not record == []:
@@ -1111,7 +1117,7 @@ def insertSource( outputFile, record, classList, permsList ):
             lineNum = int(''.join(map(str, lineNum )))
             recordLine = getSourceLine( record[3] )
             statementType = getStatementType(recordLine)
-            statementId = insertStatement( outputFile, record[3], statementType, classList, permsList )
+            statementId = insertStatement( outputFile, record[3], statementType )
             if not statementId == 0:
                 statementId = int(''.join(map(str, statementId ))) 
             source = ( fileId, lineNum, statementId )
@@ -1154,7 +1160,6 @@ def insertSource( outputFile, record, classList, permsList ):
     except Exception as err:
         print("insertSource() Error: {0}".format(err))
         print("While parsing" + record[0] + '.\n')
-        usage()
     outputFile.commit()
     database.close()
 
@@ -1169,17 +1174,20 @@ def cleanDefinition( outputFile, definitionName ):
         definitionName = (definitionName, )
         database.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
         definitionId = database.fetchone()
-        database.execute('''select * from tb_definition_content where DefinitionId = ?''', definitionId)
+        database.execute('''select * from tb_definition_content where DefinitionId = ? ''', definitionId)
         definitionContent = database.fetchone()
+        print(definitionContent)
         if not definitionContent == None:
             database.execute('''delete from tb_definition_content where DefinitionId = ?''', definitionId)
     except Exception:
         pass
 
 """
-insertDefinition() takes in the definition record, disects it for information pertaining to 
+insertDefinition() takes in the definition record, disects it for information pertaining to each necessary 
+portion of a definition record and then populates the database with the disected information of 
+each definition record.
 """
-def insertDefinition( outputFile, record, classList, permsList ):
+def insertDefinition( outputFile, record ):
     try:
         database = outputFile.cursor()
         if not record == []:
@@ -1191,25 +1199,25 @@ def insertDefinition( outputFile, record, classList, permsList ):
                 LineType = getStatementType(record)
                 # If we enounter a rule statememt.
                 if LineType == 0:
-                    statementId = int(''.join(map(str, insertStatementRule( outputFile, record, classList, permsList ))))
+                    statementId = int(''.join(map(str, insertStatementRule( outputFile, record ))))
                     content = (definitionId, statementId )
                     database.execute('''insert into tb_definition_content values 
                     (?, NULL, ?, NULL, NULL)''', content)
                 # If we encounter an interface statement.
                 elif LineType == 1:
-                    statementId = int(''.join(map(str, insertStatementInterface( outputFile, record, classList, permsList ))))
+                    statementId = int(''.join(map(str, insertStatementInterface( outputFile, record ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, ?, NULL)''', content)
                 # If we encounter an assignation statement.
                 elif LineType == 2:
-                    statementId = int(''.join(map(str, insertStatementAssign( outputFile, record, classList, permsList ))))
+                    statementId = int(''.join(map(str, insertStatementAssign( outputFile, record ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, NULL, ?)''', content)
                 # If we encounter a declaration statement.
                 elif LineType == 3:
-                    statementId = int(''.join(map(str, insertStatementDeclare( outputFile, record, classList, permsList ))))
+                    statementId = int(''.join(map(str, insertStatementDeclare( outputFile, record ))))
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, ?, NULL, NULL, NULL)''', content)
@@ -1224,15 +1232,13 @@ create and write the seorigin database.
 """
 def seorigin( outputFile, lines ):
     try:
-        classList = getClassList()
-        permsList = getPermsList()
         createTables( outputFile )
         source_record = cleanSource( lines )
         definition_record = cleanDefine( lines )
         for record in definition_record:
-            insertDefinition( outputFile, record, classList, permsList )
+            insertDefinition( outputFile, record )
         for record in source_record:
-            insertSource( outputFile, record, classList, permsList )
+            insertSource( outputFile, record )
 
     except Exception as err:
         print("seorigin() Error: {0}".format(err),"\n")
