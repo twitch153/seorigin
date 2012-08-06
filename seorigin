@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, getopt, os, sqlite3
+import sys, getopt, os, sqlite3, re
 
 """
 ===================================================================
@@ -229,58 +229,93 @@ def main():
     else:
       print("typeattribute needs to have a source (type) and target (attribute) set.")
 
+'''
+workflowGetLabelSetIdFromLabelSet - Takes in a labelSet such as { getattr open read }
+and returns the labelSetId from tb_labelSet.
+'''
+def workflowGetLabelSetIdFromLabelSet(db, labelSet):
+
+  labelSetId = 0
+  labelIds = []
+  labelSet = re.sub('{', '', labelSet)
+  labelSet = re.sub('}', '', labelSet)
+  labelSet = labelSet.split()
+  for label in labelSet:
+    label = (label, )
+    db.execute('''select labelId from tb_label where Name = ?''', label)
+    labelId = db.fetchone()
+    if labelId == None:
+      print('%s not found in tb_label of seorigin database.' % label)
+      sys.exit()
+    labelId = int(''.join(map(str, labelId)))
+    labelIds.append(labelId)
+  labelSetSize = len(labelIds)
+  labelIds = tuple(labelIds)
+  if labelSetSize == 1:
+    labelId = labelIds
+    database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
+    labelSetId = database.fetchone()
+  else:
+    getLblSetId = 'select max(labelSetId) from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
+    db.execute(getLblSetId, (labelSetSize,))
+    labelSetId = int(''.join(map(str, db.fetchone())))
+
+  return labelSetId
+
+'''
+workflowGetLabelSetIdFromLabel - Takes in a singular label such as test_t
+and returns the labelSetId from tb_labelSet.
+'''
+def workflowGetLabelSetIdFromLabel( db, label ):
+  label = (label, )
+  db.execute('''select labelId from tb_label where Name = ?''', label)
+  labelId = db.fetchone()
+  if labelId == None:
+    label = str(''.join(map(str, label)))
+    print('%s not found in tb_label of seorigin database.' % label)
+    sys.exit()
+  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
+  labelSetId = int(''.join(map(str, db.fetchone())))
+  
+  return labelSetId
 
 """
 TODO these functions need to be part of the workflow component
 """
 def workflowFindOrigin_allow(database, src, tgt, cls, prv):
 
-  db = database.cursor()
-  src = (src, )
+  prvLblSetId = 0
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src,)
+  db = database.cursor()
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  prv = str(''.join(map(str, prv)))
-  if prvLblId == None:
-    print('%s not found in tb_label of seorigin database.' % prv)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', prv):
+    prvLblSetId = workflowGetLabelSetIdFromLabelSet(db, prv)
+  else:
+    prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+  print(ruleIds)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 1 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
@@ -300,51 +335,36 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
 
 def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
 
-  db = database.cursor()
-  src = (src, )
+  prvLblSetId = 0
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  db = database.cursor()
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  prv = str(''.join(map(str, prv)))
-  if prvLblId == None:
-    print('%s not found in tb_label of seorigin database.' % prv)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', prv):
+    prvLblSetId = workflowGetLabelSetIdFromLabelSet(db, prv)
+  else:
+    prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 6 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -366,51 +386,36 @@ def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
 
 def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
 
-  db = database.cursor()
-  src = (src, )
+  prvLblSetId = 0
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  db = database.cursor()
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  prv = str(''.join(map(str, prv)))
-  if prvLblId == None:
-    print('%s not found in tb_label of seorigin database.' % prv)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', prv):
+    prvLblSetId = workflowGetLabelSetIdFromLabelSet(db, prv)
+  else:
+    prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 4 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -432,51 +437,36 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
 
 def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
 
-  db = database.cursor()
-  src = (src, )
+  prvLblSetId = 0
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  db = database.cursor()
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_label of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  prv = (prv, )
-  db.execute('''select labelId from tb_label where Name = ?''', prv)
-  prvLblId = db.fetchone()
-  prv = str(''.join(map(str, prv)))
-  if prvLblId == None:
-    print('%s not found in tb_label of seorigin database.' % prv)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', prvLblId)
-  prvLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', prv):
+    prvLblSetId = workflowGetLabelSetIdFromLabelSet(db, prv)
+  else:
+    prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 3 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -498,51 +488,37 @@ def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
 
 def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
 
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
+  ntpLblSetId = 0
   db = database.cursor()
   src = (src, )
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  ntp = (ntp, )
-  db.execute('''select labelId from tb_label where Name = ?''', ntp)
-  ntpLblId = db.fetchone()
-  ntp = str(''.join(map(str, ntp)))
-  if ntpLblId == None:
-    print('%s not found in tb_label of seorigin database.' % ntp)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
-  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', ntp):
+    ntpLblSetId = workflowGetLabelSetIdFromLabelSet(db, ntp)
+  else:
+    ntpLblSetId = workflowGetLabelSetIdFromLabel(db, ntp)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 2 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -564,51 +540,37 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
 
 def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
 
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
+  ntpLblSetId = 0
   db = database.cursor()
   src = (src, )
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  ntp = (ntp, )
-  db.execute('''select labelId from tb_label where Name = ?''', ntp)
-  ntpLblId = db.fetchone()
-  ntp = str(''.join(map(str, ntp)))
-  if ntpLblId == None:
-    print('%s not found in tb_label of seorigin database.' % ntp)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
-  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', ntp):
+    ntpLblSetId = workflowGetLabelSetIdFromLabelSet(db, ntp)
+  else:
+    ntpLblSetId = workflowGetLabelSetIdFromLabel(db, ntp)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 7 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -630,51 +592,37 @@ def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
 
 def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
 
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
+  ntpLblSetId = 0
   db = database.cursor()
   src = (src, )
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_lable of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  ntp = (ntp, )
-  db.execute('''select labelId from tb_label where Name = ?''', ntp)
-  ntpLblId = db.fetchone()
-  ntp = str(''.join(map(str, ntp)))
-  if ntpLblId == None:
-    print('%s not found in tb_label of seorigin database.' % ntp)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', ntpLblId)
-  ntpLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', ntp):
+    ntpLblSetId = workflowGetLabelSetIdFromLabelSet(db, ntp)
+  else:
+    ntpLblSetId = workflowGetLabelSetIdFromLabel(db, ntp)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, ntpLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 8 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -704,51 +652,37 @@ def workflowFindOrigin_role_transition(database, srl, src, trl):
 
 def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
 
-  db = database.cursor()
-  src = (src, )
+  srcLblSetId = 0
+  tgtLblSetId = 0
+  clsLblSetId = 0
+  rngLblSetId = 0
   oldtgt = ''
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  srcLblId = db.fetchone()
-  src = str(''.join(map(str, src)))
-  if srcLblId == None:
-    print('%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcLblId)
-  srcLblSetId = int(''.join(map(str, db.fetchone())))
-  if tgt == 'self':
-    tgt = (src, )
+  db = database.cursor()
+
+  if re.search('{', src):
+    srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcLblSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.search('self', tgt):
+    tgt = re.sub('self', src, tgt)
     oldtgt = 'self'
   else:
-    tgt = (tgt, )
+    tgt = tgt
     oldtgt = tgt
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgtLblId = db.fetchone()
-  tgt = str(''.join(map(str, tgt)))
-  if tgtLblId == None:
-    print('%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
+  if re.search('{', tgt):
+    tgtLblSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtLblSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   if type(oldtgt) == tuple:
     oldtgt = str(''.join(map(str, oldtgt)))
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtLblId)
-  tgtLblSetId = int(''.join(map(str, db.fetchone())))
-  cls = (cls, )
-  db.execute('''select labelId from tb_label where Name = ?''', cls)
-  clsLblId = db.fetchone()
-  cls = str(''.join(map(str, cls)))
-  if clsLblId == None:
-    print('%s not found in tb_label of seorigin database.' % cls)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', clsLblId)
-  clsLblSetId = int(''.join(map(str, db.fetchone())))
-  rng = (rng, )
-  db.execute('''select labelId from tb_label where Name = ?''', rng)
-  rngLblId = db.fetchone()
-  rng = str(''.join(map(str, rng)))
-  if rngLblId == None:
-    print('%s not found in tb_label of seorigin database.' % rng)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', rngLblId)
-  rngLblSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', cls):
+    clsLblSetId = workflowGetLabelSetIdFromLabelSet(db, cls)
+  else:
+    clsLblSetId = workflowGetLabelSetIdFromLabel(db, cls)
+  if re.search('{', rng):
+    rngLblSetId = workflowGetLabelSetIdFromLabelSet(db, rng)
+  else:
+    rngLblSetId = workflowGetLabelSetIdFromLabel(db, rng)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, rngLblSetId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 5 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
@@ -770,25 +704,17 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
 
 def workflowFindOrigin_typeattribute(database, src, tgt):
 
+  srcSetId = 0
+  tgtSetId = 0
   db = database.cursor()
-  src = (src,)
-  tgt = (tgt,)
-  db.execute('''select labelId from tb_label where Name = ?''', src)
-  src = str(''.join(map(str, src)))
-  srcId = db.fetchone()
-  if srcId == None:
-    print('\n%s not found in tb_label of seorigin database.' % src)
-    sys.exit()
-  db.execute('''select labelId from tb_label where Name = ?''', tgt)
-  tgt = str(''.join(map(str, tgt)))
-  tgtId = db.fetchone()
-  if tgtId == None:
-    print('\n%s not found in tb_label of seorigin database.' % tgt)
-    sys.exit()
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', srcId)
-  srcSetId = int(''.join(map(str, db.fetchone())))
-  db.execute('''select labelSetId from tb_labelSet where labelId = ?''', tgtId)
-  tgtSetId = int(''.join(map(str, db.fetchone())))
+  if re.search('{', src):
+    srcSetId = workflowGetLabelSetIdFromLabelSet(db, src)
+  else:
+    srcSetId = workflowGetLabelSetIdFromLabel(db, src)
+  if re.searc('{', tgt):
+    tgtSetId = workflowGetLabelSetIdFromLabelSet(db, tgt)
+  else:
+    tgtSetId = workflowGetLabelSetIdFromLabel(db, tgt)
   assignIds = (srcSetId, tgtSetId)
   db.execute('''select statementId from tb_statement_assign where AssignationType = 1 or 6 and 
   TargetId = ? AssignedId = ?''', assignIds)
