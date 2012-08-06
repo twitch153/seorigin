@@ -86,6 +86,10 @@ def statementHelp():
         print("   1 = Allow statements\n   2 = Type statements\n   3 = Dontaudit statements\n   4 = Auditallow statements")
         print("   5 = Range_transition statements.\n")
 
+#TODO find range in range_transition statements such as:
+# range_transition $1 initrc_exec_t:process s0 - mls_systemhigh
+# understand what they mean and how to handle them.
+
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
 """
@@ -844,10 +848,6 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
                         except sqlite3.IntegrityError:
                             pass
         else:
-            database.execute('''select * from tb_labelSet''')
-            popCheck = database.fetchone()
-            if popCheck == None:
-                prepLabelSet( labelId, modifier )
             labelSet = re.sub('[{}]', '', labelSet)
             labelSet = re.sub('\~', '', labelSet)
             labelSet = re.sub('^ ', '', labelSet)
@@ -855,23 +855,43 @@ def insertLabelSet( outputFile, labelSet, classList, permsList ):
             labelSet = labelSet.split()
             for label in labelSet:
                 labelId = int(''.join(map(str, insertLabel(outputFile, label, classList, permsList))))
+                database.execute('''select * from tb_labelSet''')
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    prepLabelSet( outputFile, (labelId,), modifier )
                 labelIds.append(labelId)
             labelSetSize = len(labelIds)
             labelIds = tuple(labelIds)
-            getLabelSetId = 'select labelSetId from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
-            database.execute(getLabelSetId, (labelSetSize, ))
-            labelSetId = database.fetchone() 
-            if labelSetId == None:
-               database.execute('''select max(labelSetId)+1 from tb_labelSet''')
-               labelSetId = int(''.join(map(str, database.fetchone())))
-            for labelId in labelIds:
-                if type(labelSetId) is tuple:
-                    labelSetId = int(''.join(map(str, labelSetId)))
-                values = (labelSetId, labelId, modifier)
-                try:
-                    database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
-                except sqlite3.IntegrityError:
-                    pass
+            # In case we come across such label sets as: { getattr }
+            if labelSetSize == 1:
+                labelId = labelIds
+                database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
+                labelSetId = database.fetchone()
+                if labelSetId == None:
+                    labelId = int(''.join(map(str,labelId)))
+                    database.execute('''select max(labelSetId)+1 from tb_labelSet''')
+                    labelSetId = database.fetchone()
+                    labelSetId = int(''.join(map(str,labelSetId)))
+                    values = (labelSetId, labelId, modifier)
+                    try:
+                        database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
+                    except sqlite3.IntegrityError:
+                        pass
+            else:
+                getLabelSetId = 'select labelSetId from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
+                database.execute(getLabelSetId, (labelSetSize, ))
+                labelSetId = database.fetchone()
+                if labelSetId == None:
+                   database.execute('''select max(labelSetId)+1 from tb_labelSet''')
+                   labelSetId = int(''.join(map(str, database.fetchone())))
+                for labelId in labelIds:
+                    if type(labelSetId) is tuple:
+                        labelSetId = int(''.join(map(str, labelSetId)))
+                    values = (labelSetId, labelId, modifier)
+                    try:
+                        database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
+                    except sqlite3.IntegrityError:
+                        pass
         if type(labelId) is not tuple:
             labelId = (labelId, ) # This is necessary to have unless we want to run
                                   # into "parameter not supported" errors.
@@ -1222,7 +1242,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.5: \n")
+    print("Workflow component v1.2.6: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
