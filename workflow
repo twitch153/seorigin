@@ -918,7 +918,7 @@ def insertLabelSet( outputFile, labelSet ):
     database.close()
 
 """
-insertStatementRule() disects the line that it is given, breaks those parts
+insertStatementRule( outputFile (Sqlite3 database), line (String) ) disects the line that it is given, breaks those parts
 up for proper insertion for tb_statement_rule as well as returning statementId
 """
 def insertStatementRule( outputFile, line ):
@@ -954,7 +954,7 @@ def insertStatementRule( outputFile, line ):
     database.close()
 
 """
-insertStatementAssign() disects the line that it is given, breaks those parts
+insertStatementAssign( outputFile (Sqlite3 database), line (String) ) disects the line that it is given, breaks those parts
 up for proper insertion for tb_statement_assign as well as returning statementId
 """
 def insertStatementAssign( outputFile, line ):
@@ -984,8 +984,7 @@ def insertStatementAssign( outputFile, line ):
     database.close()
 
 """
-insertStatementInterface() disects the line for it's interface args as well as it's name.
-It gets the proper IDs for each variable and inserts them into tb_statement_interface.
+insertStatementInterface( outputFile (Sqlite3 database), line (String) ) disects the line for it's interface args as well as it's name. It gets the proper IDs for each variable and inserts them into tb_statement_interface.
 Once this is done it returns the statementId.
 """
 def insertStatementInterface( outputFile, line ):
@@ -1025,8 +1024,7 @@ def insertStatementInterface( outputFile, line ):
     database.close()
 
 """
-insertStatementDeclare() disects the line that it is given, breaks the line apart
-up for proper insertion for tb_statement_declare and returns statementId
+insertStatementDeclare( outputFile (Sqlite3 database), line (String) ) disects the line that it is given, breaks the line apart up for proper insertion for tb_statement_declare and returns statementId.
 """
 def insertStatementDeclare( outputFile, line ):
     try:
@@ -1056,8 +1054,7 @@ def insertStatementDeclare( outputFile, line ):
     database.close()
 
 """
-insertStatement() takes in the statementType of a line, then depending on the statementType
-it will call a specific insertStatement function and return the statementId for that function.
+insertStatement( outputFile (Sqlite3 database), line (String), statementType (Int) ) takes in the statementType of a line, then depending on the statementType it will call a specific insertStatement function and return the statementId for that function.
 """
 def insertStatement( outputFile, line, statementType ):
     try:
@@ -1080,8 +1077,7 @@ def insertStatement( outputFile, line, statementType ):
         print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
 
 """
-writeOut( outputFile, output) writes output to the file we want to have it outputted to. This will be included
-for debugging purposes.
+writeOut( outputFile (Sqlite3 database), output (String) ) writes output to the file we want to have it outputted to. This will be included for debugging purposes.
 """
 def writeOut( outputFile, output ):
     try:
@@ -1092,8 +1088,7 @@ def writeOut( outputFile, output ):
     parsedOut.close()
 
 """
-insertSource() calls all necessary commands required to populate tables with source 
-record information.
+insertSource( outputFile (Sqlite3 database), record (String list) ) calls all necessary commands required to populate tables with source record information.
 """
 def insertSource( outputFile, record ):
     try:
@@ -1164,9 +1159,7 @@ def insertSource( outputFile, record ):
     database.close()
 
 """
-cleanDefinition() cleans up existing records by looking in tb_definitionName for the existing definition
-and Id of a definition name, then looks in tb_definition_content for all records for that Id. If it finds
-that content exists then it deletes all the information corressponding to that definitionId.
+cleanDefinition( outputFile (Sqlite3 database), definitionName (String) ) cleans up existing records by looking in tb_definitionName for the existing definition and Id of a definition name, then looks in tb_definition_content for all records for that Id. If it finds that content exists then it deletes all the information corressponding to that definitionId.
 """
 def cleanDefinition( outputFile, definitionName ):
     try:
@@ -1183,9 +1176,7 @@ def cleanDefinition( outputFile, definitionName ):
         pass
 
 """
-insertDefinition() takes in the definition record, disects it for information pertaining to each necessary 
-portion of a definition record and then populates the database with the disected information of 
-each definition record.
+insertDefinition( outputFile (Sqlite3 database), record (String list) ) takes in the definition record, disects it for information pertaining to each necessary portion of a definition record and then populates the database with the disected information of each definition record.
 """
 def insertDefinition( outputFile, record ):
     try:
@@ -1227,8 +1218,7 @@ def insertDefinition( outputFile, record ):
     outputFile.commit()
     database.close()
 """
-seorigin( outputFile, lines ) creates the seorigin database by calling the necessary functions to 
-create and write the seorigin database.
+seorigin( outputFile (Sqlite3 database), lines (String) ) creates the seorigin database by calling the necessary functions to create and write the seorigin database.
 """
 def seorigin( outputFile, lines ):
     try:
