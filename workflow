@@ -107,10 +107,22 @@ def parse_cmd_args():
     #Set up arguement flags for script execution.
     for o, p in opts:
         if o in ['-i', '--input']:
-            inputFile=p
+            if os.path.exists(p):
+                inputFile=p
+                if not os.access(p, os.R_OK):
+                    print("\nFile %s does not have read permissions!\nPlease specify new input file or resort to default.\n" % p)
+                    sys.exit()
+            else:
+                print("\nFile %s does not exist!\nPlease specify new input file or resort to default.\n" % p)
+                sys.exit()
             inputCheck = False
         elif o in ['-o', '--output']:
-            outputFile = sqlite3.connect(p)
+            try:
+                outputFile = sqlite3.connect(p)
+            except sqlite3.OperationalError as err:
+                print("\nCritical error: {0}".format(err))
+                print("\nSuggestions:\n\n   *Try new output file location.\n   *Check permissions of database.\n   *Gently weep.\n")
+                sys.exit()
             outputCheck=False
         elif o in ['-h', '--help']:
             print("\n")
@@ -605,6 +617,7 @@ createTables( outputFile (sqlite3 database) ) creates the necessary tables for t
 def createTables( outputFile ):
     try:
         database = outputFile.cursor()
+        database.execute('''Pragma foreign_keys=off''')
 
         database.execute('''create table if not exists tb_files
         (FileId Integer primary key AUTOINCREMENT, Filename text)''')
@@ -624,7 +637,7 @@ def createTables( outputFile ):
         database.execute('''create table if not exists tb_statement_declare
         (StatementId Integer primary key AUTOINCREMENT NOT NULL, DeclarationClass Integer NOT NULL,
         TargetId Integer NOT NULL, AliasId Integer, foreign key(TargetId) references tb_labelSet(LabelSetId),
-        foreign key(AliasId) references tb_LabelSet(LabelSetId))''')
+        foreign key(AliasId) references tb_labelSet(LabelSetId))''')
 
         database.execute('''create table if not exists tb_statement_rule
         (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, RuleClass Integer NOT NULL,
@@ -664,7 +677,9 @@ def createTables( outputFile ):
         FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
         FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId),
         FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
-
+    except sqlite3.OperationalError as err:
+        print("\ncreateTables() Error: {0}".format(err),"\n")
+        sys.exit()
     except Exception as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
     outputFile.commit()
@@ -1033,6 +1048,7 @@ def insertStatementDeclare( outputFile, line ):
         declareType = getDeclareType( line )
         targetLabel = getTargetFromDeclare( line )
         targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
+        values = (declareType, targetId)
         if re.search('alias', line):
             aliasLabel = getAliasFromDeclare( line )
             aliasId = int(''.join(map(str, insertLabelSet( outputFile, aliasLabel ))))
@@ -1041,15 +1057,25 @@ def insertStatementDeclare( outputFile, line ):
         and TargetId = ? and AliasId = ?''', values)
         postPopCheck = database.fetchone()
         if postPopCheck == None:
-            database.execute('''insert into tb_statement_declare values (NULL, ?, ?, ?)''', values)
+            try:
+                database.execute('''insert into tb_statement_declare values (NULL, ?, ?, ?)''', values)           
+            except Exception as err:
+                print("\ninsertStatementDeclare Error: {0}".format(err))
+                print("When running Sqlite3 command:")
+                print("insert into tb_statement_declare values " + str(values) + "\n")
+                sys.exit()
         else:
             pass
         database.execute('''select statementId from tb_statement_declare where DeclarationClass = ?
         and TargetId = ? and AliasId = ?''', values)
         StatementId = database.fetchone()
+        if not type(StatementId) == tuple:
+            print("insertStatementDeclare() Error: statementId is not an int for line: %s\n" % line)
+            sys.exit()
         return StatementId
     except Exception as err:
-        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
+        print("\ninsertStatementDeclare() Error: {0}".format(err))
+        print("While parsing line: %s\n" % line)
     outputFile.commit()
     database.close()
 
@@ -1074,7 +1100,7 @@ def insertStatement( outputFile, line, statementType ):
             statementId = insertStatementDeclare( outputFile, line )
         return statementId
     except Exception as err:
-        print("\ninsertStatementDeclare() Error: {0}".format(err),"\n")
+        print("\ninsertStatement() Error: {0}".format(err),"\n")
 
 """
 writeOut( outputFile (Sqlite3 database), output (String) ) writes output to the file we want to have it outputted to. This will be included for debugging purposes.
@@ -1185,30 +1211,55 @@ def insertDefinition( outputFile, record ):
             record[0] = re.sub('#', '', record[0])
             defName = getDefinitionName( record[1] )
             cleanDefinition( outputFile, defName )
-            definitionId = int(''.join(map(str, insertDefinitionName(outputFile, defName))))
+            definitionId = insertDefinitionName(outputFile, defName)
+            if type(definitionId) == tuple:
+                definitionId = int(''.join(map(str, definitionId)))
+            if not type(definitionId) == int:
+                print("insertDefinition() Error: definitionId is not of type int\nWhile handling definition name: %s\n" % defName)
+                sys.exit()
             for record in record[2:]:
                 LineType = getStatementType(record)
                 # If we enounter a rule statememt.
                 if LineType == 0:
-                    statementId = int(''.join(map(str, insertStatementRule( outputFile, record ))))
+                    statementId = insertStatementRule( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
                     content = (definitionId, statementId )
                     database.execute('''insert into tb_definition_content values 
                     (?, NULL, ?, NULL, NULL)''', content)
                 # If we encounter an interface statement.
                 elif LineType == 1:
-                    statementId = int(''.join(map(str, insertStatementInterface( outputFile, record ))))
+                    statementId = insertStatementInterface( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, ?, NULL)''', content)
                 # If we encounter an assignation statement.
                 elif LineType == 2:
-                    statementId = int(''.join(map(str, insertStatementAssign( outputFile, record ))))
+                    statementId = insertStatementAssign( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, NULL, NULL, NULL, ?)''', content)
                 # If we encounter a declaration statement.
                 elif LineType == 3:
-                    statementId = int(''.join(map(str, insertStatementDeclare( outputFile, record ))))
+                    statementId = insertStatementDeclare( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
                     (?, ?, NULL, NULL, NULL)''', content)
