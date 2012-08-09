@@ -169,6 +169,8 @@ def getStatementType( line ):
         pass
     elif re.search('\',`', line):
         pass
+    elif line == '':
+        pass
     # Checks for rule calls
     elif re.search('^allow', line):
         statementValue = 0
@@ -208,8 +210,8 @@ def getStatementType( line ):
     elif re.search('^\{', line):
         statementValue = 3
     else:
+        print('Unknown line: ' + line)
         pass
-        #print('Unknown line: ' + line)
     return statementValue
 
 """
@@ -503,6 +505,7 @@ def getTargetFromDeclare( declareLine ):
         return target 
     except Exception as err:
         print("\ngetTargetFromDeclare() Error: {0}".format(err),"\n")
+        print("While parsing target from line: %s.\n" % declareLine)
 
 '''
 getAliasFromDeclare( declareLine (String) ) takes in a declaration line like this: 
@@ -517,7 +520,7 @@ def getAliasFromDeclare( declareLine ):
         return alias
     except Exception as err:
         print('\ngetAliasFromDeclare() Error: {0}'.format(err), '\n')
-
+        print("While parsing alias from line: %s.\n" % declareLine)
 
 '''
 getAssignationType( assignLine (String) ) takes in a statement assign line from the input and returns the type
@@ -541,6 +544,7 @@ def getAssignationType( assignLine ):
         return assignType
     except Exception as err:
         print('\ngetAssignationType() Error: {0}'.format(err),"\n")
+        print("While getting assignment type from: %s.\n" % assignLine)
 
 """
 getClassList() grabs the information from "SELinux Class list" and returns it as a list.
@@ -677,9 +681,11 @@ def createTables( outputFile ):
         FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
         FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId),
         FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
+
     except sqlite3.OperationalError as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
         sys.exit()
+
     except Exception as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
     outputFile.commit()
@@ -766,6 +772,7 @@ def insertFile( outputFile, sourceFile ):
         return fileId
     except Exception as err:
         print("\ninsertFile() Error: {0}".format(err),"\n")
+        print("While handling file name: %s.\n" % sourceFile)
     outputFile.commit()
     database.close()
 
@@ -792,6 +799,7 @@ def insertDefinitionName( outputFile, definitionCall ):
         return definitionId
     except Exception as err:
         print("\ninsertDefinitionNames() Error: {0}".format(err),"\n")
+        print("While handling definition call: %s.\n" % definitionCall)
     outputFile.commit()
     database.close()
 
@@ -817,6 +825,7 @@ def insertLabel( outputFile, label ):
         return labelId
     except Exception as err:
         print("\ninsertLabel() Error: {0}".format(err),"\n")
+        print("While handling label: %s.\n" % label)
     outputFile.commit()
     database.close()
 
@@ -845,6 +854,7 @@ include the labelIds of the labels inside.
 """
 def insertLabelSet( outputFile, labelSet ):
     try:
+        oldLabelSet = labelSet
         database = outputFile.cursor()
         modifier = 1
         labelSetId = 0
@@ -880,8 +890,8 @@ def insertLabelSet( outputFile, labelSet ):
             labelSet = re.sub('\~', '', labelSet)
             labelSet = re.sub('^ ', '', labelSet)
             labelIds = []
-            labelSet = labelSet.split()
-            for label in labelSet:
+            labels = labelSet.split()
+            for label in labels:
                 labelId = int(''.join(map(str, insertLabel(outputFile, label ))))
                 database.execute('''select * from tb_labelSet''')
                 popCheck = database.fetchone()
@@ -920,15 +930,13 @@ def insertLabelSet( outputFile, labelSet ):
                         database.execute('''insert into tb_labelSet values (?, ?, ?)''', values)
                     except sqlite3.IntegrityError:
                         pass
-        if type(labelId) is not tuple:
-            labelId = (labelId, ) # This is necessary to have unless we want to run
-                                  # into "parameter not supported" errors.
-        database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
-        labelSetId = database.fetchone()
+        if type(labelSetId) is not tuple:
+            labelSetId = (labelSetId, )
         return labelSetId
     except Exception as err:
         print("\ninsertLabelSet() Error: {0}".format(err))
-        print('When inserting ' + labelSet + ' into tb_labelSet\n')
+        print('When inserting ' + oldLabelSet + ' into tb_labelSet\n')
+        sys.exit()
     outputFile.commit()
     database.close()
 
@@ -965,6 +973,7 @@ def insertStatementRule( outputFile, line ):
         return statementId
     except Exception as err:
         print("\ninsertStatementRule() Error: {0}".format(err),"\n")
+        print("While parsing line: %s.\n" % line)
     outputFile.commit()
     database.close()
 
@@ -995,6 +1004,7 @@ def insertStatementAssign( outputFile, line ):
         return statementId
     except Exception as err:
         print("\ninsertStatementAssign() Error: {0}".format(err),"\n")
+        print("While parsing line: %s.\n" % line)
     outputFile.commit()
     database.close()
 
@@ -1048,7 +1058,6 @@ def insertStatementDeclare( outputFile, line ):
         declareType = getDeclareType( line )
         targetLabel = getTargetFromDeclare( line )
         targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
-        values = (declareType, targetId)
         if re.search('alias', line):
             aliasLabel = getAliasFromDeclare( line )
             aliasId = int(''.join(map(str, insertLabelSet( outputFile, aliasLabel ))))
@@ -1101,6 +1110,7 @@ def insertStatement( outputFile, line, statementType ):
         return statementId
     except Exception as err:
         print("\ninsertStatement() Error: {0}".format(err),"\n")
+        print("When parsing: %s\n" % line)
 
 """
 writeOut( outputFile (Sqlite3 database), output (String) ) writes output to the file we want to have it outputted to. This will be included for debugging purposes.
@@ -1290,7 +1300,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.6: \n")
+    print("Workflow component v1.2.7: \n")
     print("Please be patient, this MAY take awhile...")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
