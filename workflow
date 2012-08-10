@@ -99,10 +99,8 @@ def parse_cmd_args():
 
     opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
 
-    inputCheck = True    # Boolean check to see if input location has been set.
-    outputCheck = True   # Boolean check to see if output location has been set.
-    defInFile = os.path.join(os.environ["PWD"], 'parsed_output.txt') # Default input location.
-    defOutFile = os.path.join(os.environ["PWD"], 'seorigin.db') # Default output location.
+    inputCheck = False   # Boolean check to see if input location has been set.
+    outputCheck = False   # Boolean check to see if output location has been set.
 
     #Set up arguement flags for script execution.
     for o, p in opts:
@@ -113,9 +111,9 @@ def parse_cmd_args():
                     print("\nFile %s does not have read permissions!\nPlease specify new input file or resort to default.\n" % p)
                     sys.exit()
             else:
-                print("\nFile %s does not exist!\nPlease specify new input file or resort to default.\n" % p)
+                print("\nFile %s does not exist!\nPlease specify new input file.\n" % p)
                 sys.exit()
-            inputCheck = False
+            inputCheck = True
         elif o in ['-o', '--output']:
             try:
                 outputFile = sqlite3.connect(p)
@@ -123,7 +121,7 @@ def parse_cmd_args():
                 print("\nCritical error: {0}".format(err))
                 print("\nSuggestions:\n\n   *Try new output file location.\n   *Check permissions of database.\n   *Gently weep.\n")
                 sys.exit()
-            outputCheck=False
+            outputCheck=True
         elif o in ['-h', '--help']:
             print("\n")
             usage()
@@ -133,12 +131,15 @@ def parse_cmd_args():
             sys.exit()
 
 # Sanity check to make sure the parsed information is getting written to some location.
-    if inputCheck:
-        inputFile=defInFile
-        print ("\nInput location not specified, defaulting to: " + defInFile)
-    if outputCheck:
-        outputFile=sqlite3.connect(defOutFile) # Creates a connection to the sqlite3 database
-        print ("\nOutput location not specified, defaulting to: " + defOutFile)
+    if not inputCheck and outputCheck:
+        print("\nInput file not specified, please specify input file to continue.")
+        sys.exit()
+    if not outputCheck and inputCheck:
+        print ("\nOutput file not specified, please specify new output file to continue.")
+        sys.exit()
+    if not outputCheck and not inputCheck:
+        print("\nInput file and output file are not specified.\n\nPlease specify both files in order to continue.")
+        sys.exit()
     return( inputFile, outputFile )
 	
 """
@@ -1067,6 +1068,7 @@ def insertStatementDeclare( outputFile, line ):
         postPopCheck = database.fetchone()
         if postPopCheck == None:
             try:
+                print(values)
                 database.execute('''insert into tb_statement_declare values (NULL, ?, ?, ?)''', values)           
             except Exception as err:
                 print("\ninsertStatementDeclare Error: {0}".format(err))
@@ -1287,6 +1289,7 @@ def seorigin( outputFile, lines ):
         createTables( outputFile )
         source_record = cleanSource( lines )
         definition_record = cleanDefine( lines )
+
         for record in definition_record:
             insertDefinition( outputFile, record )
         for record in source_record:
@@ -1305,6 +1308,7 @@ def main():
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
+    print("Enjoy your fresh new database! Be careful, it may be hot. ;)\n")
 
 """
 The main function is run below.
