@@ -50,29 +50,41 @@ def parse_cmd_args():
 
     opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
     
-    inputCheck = True    # Boolean check to see if input location has been set.
-    outputCheck = True   # Boolean check to see if output location has been set.
-    defInFile = 'refpolicy/debug.log' # Default input location.
+    inputCheck = False    # Boolean check to see if input location has been set.
+    outputCheck = False   # Boolean check to see if output location has been set.
     defOutFile = os.path.join(os.environ["PWD"],'parsed_output.txt') # Default output location.
 
     #Set up arguement flags for script execution.
     for o, p in opts:
         if o in ['-i', '--input']:
-            inputFile=p
-            inputCheck = False
+            if os.path.exists(p):
+                inputFile=p
+                if not os.access(p, os.R_OK):
+                    print("\nFile %s does not have read permissions!\n" % p)
+                    sys.exit()
+            else:
+                print("\nFile %s does not exist!\nPlease specify new input file.\n" % p)
+            inputCheck = True
         elif o in ['-o', '--output']:
             outputFile=p
-            outputCheck= False
+            if not os.access(p, os.W_OK):
+                print("File %s does not have write permissions!\n" % p)
+                sys.exit()
+            outputCheck= True
         elif o in ['-h', '--help']:
             usage()
 
 # Sanity check to make sure the parsed information is getting written to some location.
-    if inputCheck:
-        inputFile=defInFile
-        print ("\nInput location not specified, defaulting to: " + defInFile)
-    if outputCheck:
-        outputFile=defOutFile
-        print ("\nOutput location not specified, defaulting to: " + defOutFile)
+    if not inputCheck and outputCheck:
+        print ("\nInput location not specified, please specify input file or\ndefault to debug.log located in:")
+        print ("refpolicy/debug.log")
+        sys.exit()
+    if not outputCheck and inputCheck:
+        print ("\nOutput location not specified, please specify output file.")
+        sys.exit()
+    if not outputCheck and not inputCheck:
+        print("\nInput file and output file both not specified. Please specify files.")
+        sys.exit() 
     return( inputFile, outputFile )
 
 
@@ -299,11 +311,12 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.4.1: ")
+    print("Policy-parser v1.4.2: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
     writeOut( outputFile, output )
+    print("Policy parsing complete! Enjoy :)\n")
 
 """
 The main function is run below.
