@@ -1305,11 +1305,13 @@ main() is where all the magic happens! Like Disney land, just less...'cartooney'
 def main():
     print("Workflow component v1.2.7: \n")
     print("Please be patient, this MAY take awhile...")
+    print("While you're waiting, play a game:\nhttp://portal.wecreatestuff.com/portal.php")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
+    print("Complete! For your time, enjoy this picture of a cat:")
+    print("http://catmacros.files.wordpress.com/2010/03/cat_portals.jpg")
     print("Enjoy your fresh new database! Be careful, it may be hot. ;)\n")
-
 """
 The main function is run below.
 """
