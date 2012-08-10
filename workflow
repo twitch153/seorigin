@@ -1068,7 +1068,6 @@ def insertStatementDeclare( outputFile, line ):
         postPopCheck = database.fetchone()
         if postPopCheck == None:
             try:
-                print(values)
                 database.execute('''insert into tb_statement_declare values (NULL, ?, ?, ?)''', values)           
             except Exception as err:
                 print("\ninsertStatementDeclare Error: {0}".format(err))
