@@ -89,6 +89,7 @@ def statementHelp():
 #TODO find range in range_transition statements such as:
 # range_transition $1 initrc_exec_t:process s0 - mls_systemhigh
 # understand what they mean and how to handle them.
+# Add -d flag for debugging.
 
 """
 parse_cmd_agrs() sets up the -i -o and -h flags for the policy-parser script. See usage for what each flag is.
@@ -170,10 +171,12 @@ def getStatementType( line ):
         pass
     elif re.search('\',`', line):
         pass
+    elif re.search('^if', line):
+        pass
     elif line == '':
         pass
     # Checks for rule calls
-    elif re.search('^allow', line):
+    elif re.search('^allow .*:.*;', line):
         statementValue = 0
     elif re.search('^type_.*', line):
         statementValue = 0
@@ -201,15 +204,19 @@ def getStatementType( line ):
         statementValue = 2
     elif re.search('^type.*,.*', line):
         statementValue = 2
+    elif re.search('^allow ', line):
+        statementValue = 2
     # Checks for declaration calls
     elif re.search('^type', line):
         statementValue = 3
-    elif re.search('^role', line):
+    elif re.search('^role ', line):
         statementValue = 3
     elif re.search('^attribute', line):
         statementValue = 3
     elif re.search('^\{', line):
         statementValue = 3
+    elif re.search('^role_transition', line):
+        statementValue = 4
     else:
         print('Unknown line: ' + line)
         pass
@@ -232,30 +239,60 @@ def getDeclareType( declareLine ):
             declareType = 4
         return declareType
     except Exception as err:
-        print("getDeclareType Error: {0}".format(err),"\n")
-
+        print("getDeclareType() Error: {0}".format(err))
+        print("While determining type of line: %s" % declareLine,"\n")
 """
 getRuleType( ruleLine (String) ) goes through the lines of rules statements and returns the rule type as an int.
 """
 def getRuleType( ruleLine ):
-    ruleType = 0
-    if re.search('^allow', ruleLine):
-        ruleType = 1
-    elif re.search('^type_transition', ruleLine):
-        ruleType = 2
-    elif re.search('^dontaudit', ruleLine):
-        ruleType = 3
-    elif re.search('^auditallow', ruleLine):
-        ruleType = 4
-    elif re.search('^range_transition', ruleLine):
-        ruleType = 5
-    elif re.search('^neverallow', ruleLine):
-        ruleType = 6
-    elif re.search('^type_member', ruleLine):
-        ruleType = 7
-    elif re.search('^type_change', ruleLine):
-        ruleType = 8
-    return ruleType
+    try:
+        ruleType = 0
+        if re.search('^allow', ruleLine):
+            ruleType = 1
+        elif re.search('^type_transition', ruleLine):
+            ruleType = 2
+        elif re.search('^dontaudit', ruleLine):
+            ruleType = 3
+        elif re.search('^auditallow', ruleLine):
+            ruleType = 4
+        elif re.search('^range_transition', ruleLine):
+            ruleType = 5
+        elif re.search('^neverallow', ruleLine):
+            ruleType = 6
+        elif re.search('^type_member', ruleLine):
+            ruleType = 7
+        elif re.search('^type_change', ruleLine):
+            ruleType = 8
+        return ruleType
+    except Exception as err:
+        print("getRuleType() Error: {0}".format(err))
+        print("While determining rule type of line: %s" % ruleLine,"\n")
+
+'''
+getAssignationType( assignLine (String) ) takes in a statement assign line from the input and returns the type
+of assign statement it is in a numerical value.
+'''
+def getAssignationType( assignLine ):
+    try:
+        assignType = 0
+        if re.search('^typeattribute', assignLine):
+            assignType = 1
+        elif re.search('^roleattribute', assignLine):
+            assignType = 2
+        elif re.search('^typealias', assignLine):
+            assignType = 3
+        elif re.search('^class', assignLine):
+            assignType = 4
+        elif re.search('^role', assignLine):
+            assignType = 5
+        elif re.search('^type', assignLine):
+            assignType = 6
+        elif re.search('^allow', assignLine):
+            assignType = 7
+        return assignType
+    except Exception as err:
+        print('\ngetAssignationType() Error: {0}'.format(err))
+        print("While determining assignment type from: %s.\n" % assignLine)
 
 """
 getFileName( record (String) ) goes through a source record and returns the file name.
@@ -322,6 +359,8 @@ and would return the source labels which in this case would be: $1.
 def getSourceFromRule( line ):
     try:
         setCheck = False
+        if re.search('^ ', line):
+            line = re.sub('^ ', '', line)
         line = re.sub(':.*$', '', line)
         source = re.sub('^\w+[_\w+] ', '', line)
         if re.search('^{', source):
@@ -346,6 +385,8 @@ and would return the destination label which in this case would be: $2.
 def getDestinationFromRule( line ):
     destination = ''
     setCheck = False
+    if re.search('^ ', line):
+        line = re.sub('^ ', '', line)
     line = re.sub(':.*$', '', line)
     if re.search('{', line):
         setCheck = True
@@ -353,15 +394,25 @@ def getDestinationFromRule( line ):
         setCheck = False
     if setCheck:
         destination = re.sub('^\w+[_\w+] ', '', line)
-        if re.search('^\$\d+', destination):
+        if re.search('^\w+_\$\d+_\w+ ', destination):
+            destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
+        if re.search('^\$\d+[_w+]', destination):
+            destination = re.sub('^\$\d+_\w+ ', '', destination)
+        elif re.search('^\$\d+', destination):
             destination = re.sub('^\$\d+ ', '', destination)
+        elif re.search('^\$\d+[_w+]', destination):
+            destination = re.sub('^\$\d+_\w+ ', '', destination)
         elif re.search('^\w+', destination):
             destination = re.sub('^\w+ ', '', destination)
         elif re.search('^[~{].*} ', destination):
             destination = re.sub('^[~{].*} ', '', destination)
     else:
         destination = re.sub('^\w+[_\w+] ', '', line)
-        if re.search('^\$\d+', destination):
+        if re.search('^\w+_\$\d+_\w+ ', destination):
+            destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
+        if re.search('^\$\d+[_w+]', destination):
+            destination = re.sub('^\$\d+_\w+ ', '', destination)
+        elif re.search('^\$\d+', destination):
             destination = re.sub('^\$\d+ ', '', destination)
         elif re.search('^\w+', destination):
             destination = re.sub('^\w+ ', '', destination)
@@ -442,6 +493,8 @@ getInterfaceName( interfaceLine (String) ) grabs the name of the interface state
 def getInterfaceName( interfaceLine ):
     try:
         name = ''
+        if re.search('^ ', interfaceLine):
+            interfaceLine = re.sub('^ *', '', interfaceLine)
         name = re.sub('\(.*\)', '', interfaceLine)
         return name
     except Exception as err:
@@ -458,8 +511,10 @@ in the second case it would be: file
 def getTargetFromAssignation( line ):
     try:
         target = ''
+        line = re.sub('^ ', '', line)
         line = re.sub('^\w+ ', '', line)
         target = re.sub(' .*;', '', line)
+        target = re.sub('[, ]', '', target)
         return target
     except Exception as err:
         print('\ngetTargetFromAssignation() Error: {0}'.format(err),"\n")
@@ -476,12 +531,19 @@ in this case it would be: { domain foo_t bar_t }
 def getAssignedFromAssignation( line ):
     try:
         assigned = ''
-        assigned = re.sub('^\w+ ', '', line)
+        assigned = re.sub('^ ', '', line)
+        assigned = re.sub('^\w+ ', '', assigned)
         if re.search('^\w+[_\w+]', assigned):
             assigned = re.sub('^\w+[_\w+] ', '', assigned)
+        elif re.search('^\$\d+[_\w+]', assigned):
+            assigned = re.sub('^\$\d+_\w+ ', '', assigned)
         elif re.search('^\$\d+', assigned):
             assigned = re.sub('^\$\d+ ', '', assigned)
+        if re.search('^\w+_\$\d+_\w+ ', assigned):
+            assigned = re.sub('^\w+_\$\d+_\w+ ', '', assigned)
         assigned = re.sub('^types ', '', assigned)
+        if re.search('^alias', assigned):
+            assigned = re.sub('^alias ', '', assigned)
         if re.search('^.*, .*', assigned):
             assigned = re.sub(',', '', assigned)
             assigned = re.sub('^', '{ ', assigned)
@@ -500,13 +562,16 @@ and returns the target of the declaration, which would be: system_r
 def getTargetFromDeclare( declareLine ):
     try:
         target = ''
+        oldDeclare = declareLine
+        if re.search('^ ', declareLine):
+            declareLine = re.sub('^ ', '', declareLine)
         target = re.sub('^\w+[_\w+] ', '', declareLine)
         target = re.sub(' alias .*$', '', target)
         target = re.sub(';', '', target)
         return target 
     except Exception as err:
         print("\ngetTargetFromDeclare() Error: {0}".format(err),"\n")
-        print("While parsing target from line: %s.\n" % declareLine)
+        print("While parsing target from line: %s.\n" % oldDeclare)
 
 '''
 getAliasFromDeclare( declareLine (String) ) takes in a declaration line like this: 
@@ -524,28 +589,65 @@ def getAliasFromDeclare( declareLine ):
         print("While parsing alias from line: %s.\n" % declareLine)
 
 '''
-getAssignationType( assignLine (String) ) takes in a statement assign line from the input and returns the type
-of assign statement it is in a numerical value.
+getArgFromRoleTrans( roleTransLine (String) ) takes in a role_transition line like:
+    role_transition $2 amavis_initrc_exec_t system_r;
+and returns the argument which in this case would be: $2
 '''
-def getAssignationType( assignLine ):
+def getArgFromRoleTrans( roleTransLine ):
     try:
-        assignType = 0
-        if re.search('^typeattribute', assignLine):
-            assignType = 1
-        elif re.search('^roleattribute', assignLine):
-            assignType = 2
-        elif re.search('^typealias', assignLine):
-            assignType = 3
-        elif re.search('^class', assignLine):
-            assignType = 4
-        elif re.search('^role', assignLine):
-            assignType = 5
-        elif re.search('^type', assignLine):
-            assignType = 6
-        return assignType
+        arg = ''
+        if re.search('^ ', roleTransLine ):
+            roleTransLine = re.sub('^ *', '', roleTransLine )
+        oldLine = roleTransLine
+        arg = re.sub('role_transition ', '', roleTransLine)
+        arg = re.sub(' .*_t', '', arg)
+        arg = re.sub(' .*_r;', '', arg)
+        return arg
     except Exception as err:
-        print('\ngetAssignationType() Error: {0}'.format(err),"\n")
-        print("While getting assignment type from: %s.\n" % assignLine)
+        print('\ngetArgFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('While parsing argument from line: %s.\n' % oldLine)
+
+'''
+getTypeFromRoleTrans( roleTransLine (String) ) takes in a role_transition line like:
+    role_transition $2 amavis_initrc_exec_t system_r;
+and returns the target which in this case would be: amavis_initrc_exec_t
+'''
+def getTypeFromRoleTrans( roleTransLine ):
+    try:
+        roleTransTarget = ''
+        if re.search('^ ', roleTransLine ):
+            roleTransLine = re.sub('^ *', '', roleTransLine )
+        oldLine = roleTransLine
+        roleTransTarget = re.sub('^role_transition ', '', roleTransLine)
+        if re.search('^\$\d+[_\w+]', roleTransTarget):
+            roleTransTarget = re.sub('^\$\d+_\w+ ', '', roleTransTarget)
+        elif re.search('^\$\d+', roleTransTarget):
+            roleTransTarget = re.sub('^\$\d+ ', '', roleTransTarget)
+        elif re.search('^\w+[_\w+]', roleTransTarget):
+            roleTransTarget = re.sub('^\w+[_\w+] ', '', roleTransTarget)
+        roleTransTarget = re.sub(' .*_r;', '', roleTransTarget)
+        return roleTransTarget
+    except Exception as err:
+        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('While parsing type from line: %s.\n' % oldLine)
+
+'''
+getRoleFromRoleTrans( roleTransLine (String) ) takes in a role_transition line like:
+    role_transition $2 amavis_initrc_exec_t system_r;
+and returns the assignation which in this case would be: system_r
+'''
+def getRoleFromRoleTrans( roleTransLine ):
+    try:
+        roleTransAssign = ''
+        if re.search('^ ', roleTransLine ):
+            roleTransLine = re.sub('^ *', '', roleTransLine )
+        oldLine = roleTransLine
+        roleTransAssign = re.sub('^role_transition .*\w+ ', '', roleTransLine)
+        roleTransAssign = re.sub(';', '', roleTransAssign)
+        return roleTransAssign
+    except Exception as err:
+        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('While parsing role from line: %s.\n' % oldLine)
 
 """
 getClassList() grabs the information from "SELinux Class list" and returns it as a list.
@@ -666,22 +768,31 @@ def createTables( outputFile ):
         TargetLabelId INTEGER NOT NULL, AssignedLabelId INTEGER NOT NULL, FOREIGN KEY(TargetLabelId)
         REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(AssignedLabelId) REFERENCES TB_LABELSET(LabelSetId))''')
 
+        database.execute('''create table if not exists tb_statement_roletrans
+        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, ArgId INTEGER NOT NULL,
+        TypeId INTEGER NOT NULL, RoleId INTEGER NOT NULL, FOREIGN KEY(ArgId) 
+        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(TypeId) REFERENCES TB_LABELSET(LabelSetId),
+        FOREIGN KEY(RoleId) REFERENCES TB_LABELSET(LabelSetId))''')
+
         database.execute('''create table if not exists tb_definition_content
         (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementRuleId INTEGER,
-        StatementInterfaceId INTEGER, StatementAssignId INTEGER, FOREIGN KEY(DefinitionId)
-        REFERENCES TB_DEFINITIONNAMES(DefinitionId), FOREIGN KEY(StatementDeclareId)
-        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementRuleId)
-        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId)
-        REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId)
-        REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
-
+        StatementInterfaceId INTEGER, StatementAssignId INTEGER, StatementRoleTransId, 
+        FOREIGN KEY(DefinitionId) REFERENCES TB_DEFINITIONNAMES(DefinitionId), 
+        FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
+        FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
+        FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId), 
+        FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId)
+        FOREIGN KEY(StatementRoleTransId) REFERENCES TB_STATEMENT_ROLETRANS(StatementId))''')
+    
         database.execute('''create table if not exists tb_source
         (FileId INTEGER NOT NULL, LineNumber INTEGER NOT NULL, StatementDeclareId INTEGER,
         StatementRuleId INTEGER, StatementInterfaceId INTEGER, StatementAssignId INTEGER,
-        FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
-        FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
-        FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId),
-        FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId))''')
+        StatementRoleTransId INTEGER, FOREIGN KEY(StatementDeclareId) 
+        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementRuleId)
+        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId)
+        REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId)
+        REFERENCES TB_STATEMENT_ASSIGN(StatementId), FOREIGN KEY(StatementRoleTransId)
+        REFERENCES TB_STATEMENT_ROLETRANS(StatementId))''')
 
     except sqlite3.OperationalError as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
@@ -745,6 +856,7 @@ def cleanSource( lines ):
                     continue
                 line = re.sub('\n', '', line)
                 record.append(line)
+        cleanSource.append(record) # Grabs final source record.
         return cleanSource
     except Exception as err:
         print("\ncleanSource() Error: {0}".format(err),"\n")
@@ -761,14 +873,14 @@ def insertFile( outputFile, sourceFile ):
         if sourceFile == '':
             pass
         else:
-            File = (sourceFile, )
-            database.execute('''select * from tb_files where Filename = ?''', File)
+            sourceFile = (sourceFile, )
+            database.execute('''select * from tb_files where Filename = ?''', sourceFile)
             postPopCheck = database.fetchone()
             if postPopCheck == None:
-                database.execute('''insert into tb_files values (NULL, ?)''', File)
+                database.execute('''insert into tb_files values (NULL, ?)''', sourceFile)
             else:
                 pass
-        database.execute('''select fileId from tb_files where Filename = ?''', File)
+        database.execute('''select fileId from tb_files where Filename = ?''', sourceFile)
         fileId = database.fetchone()
         return fileId
     except Exception as err:
@@ -784,6 +896,8 @@ def insertDefinitionName( outputFile, definitionCall ):
     try:
         database = outputFile.cursor()
         definitionId = 0
+        if re.search(' $', definitionCall):
+            definitionCall = re.sub(' *$', '', definitionCall)
         if definitionCall == '':
             pass
         else:
@@ -809,6 +923,10 @@ insertLabel( outputFile (Sqlite3 database), label (String) ) writes specific inf
 """
 def insertLabel( outputFile, label ):
     try:
+        if re.search('^ ', label):
+            label = re.sub('^ ', '', label)
+        if re.search(' $', label):
+            label = re.sub(' $', '', label)
         database = outputFile.cursor()
         labelClass = getLabelClass(label, classList, permsList)
         labelCheck = (label, )
@@ -1004,8 +1122,8 @@ def insertStatementAssign( outputFile, line ):
         statementId = database.fetchone()
         return statementId
     except Exception as err:
-        print("\ninsertStatementAssign() Error: {0}".format(err),"\n")
-        print("While parsing line: %s.\n" % line)
+        print("\ninsertStatementAssign() Error: {0}".format(err))
+        print("While parsing line: %s\n" % line)
     outputFile.commit()
     database.close()
 
@@ -1089,6 +1207,39 @@ def insertStatementDeclare( outputFile, line ):
     outputFile.commit()
     database.close()
 
+def insertStatementRoleTrans( outputFile, line ):
+    try:
+        database = outputFile.cursor()
+        argLabel = getArgFromRoleTrans( line )
+        targetLabel = getTypeFromRoleTrans( line )
+        assignLabel = getRoleFromRoleTrans( line )
+        targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
+        argId = int(''.join(map(str, insertLabelSet( outputFile, argLabel ))))
+        assignId = int(''.join(map(str, insertLabelSet( outputFile, assignLabel ))))
+        values = (argId, targetId, assignId)
+        database.execute('''select * from tb_statement_roletrans where ArgId = ? and TypeId = ?
+        and RoleId = ?''', values)
+        postPopCheck = database.fetchone()
+        if postPopCheck == None:
+            try:
+                database.execute('''insert into tb_statement_roletrans values (NULL, ?, ?, ?)''', values)
+            except Exception as err:
+                print('\insertStatementRoleTrans() Error{0}'.format(err))
+                print('When running Sqlite3 command:')
+                print('insert into tb_statement_roletrans values ' + str(values) + '\n')
+        else:
+            pass
+        database.execute('''select statementId from tb_statement_roletrans where ArgId = ? 
+        and TypeId = ? and RoleId = ?''', values)
+        statementId = database.fetchone()
+        if not type(statementId) == tuple:
+            print("insertStatementDeclare() Error: statementId is not an int for line: %s\n" % line)
+            sys.exit()
+        return statementId
+    except Exception as err:
+        print('\ninsertStatementRoleTrans() Error: {0}'.format(err))
+        print('While parsing line: %s\n' % line)
+
 """
 insertStatement( outputFile (Sqlite3 database), line (String), statementType (Int) ) takes in the statementType of a line, then depending on the statementType it will call a specific insertStatement function and return the statementId for that function.
 """
@@ -1108,6 +1259,8 @@ def insertStatement( outputFile, line, statementType ):
         # If we enounter a declare statememt.
         elif statementType == 3:
             statementId = insertStatementDeclare( outputFile, line )
+        elif statementType == 4:
+            statementId = insertStatementRoleTrans( outputFile, line )
         return statementId
     except Exception as err:
         print("\ninsertStatement() Error: {0}".format(err),"\n")
@@ -1159,7 +1312,7 @@ def insertSource( outputFile, record ):
                 statementRuleId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL, NULL)''', source)
                 else:
                     pass
             # If we find an interface statement
@@ -1168,7 +1321,7 @@ def insertSource( outputFile, record ):
                 statementInterfaceId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL, NULL)''', source)
                 else:
                     pass
             # If we find an assignation statement
@@ -1177,7 +1330,7 @@ def insertSource( outputFile, record ):
                 statementAssignId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?, NULL)''', source)
                 else:
                     pass
             # If we find declaration statement
@@ -1186,7 +1339,15 @@ def insertSource( outputFile, record ):
                 statementDeclareId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL, NULL)''', source)
+                else:
+                    pass
+            elif statementType == 4:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementRoleTransId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, NULL, ?)''', source)
                 else:
                     pass
     except Exception as err:
@@ -1240,7 +1401,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId )
                     database.execute('''insert into tb_definition_content values 
-                    (?, NULL, ?, NULL, NULL)''', content)
+                    (?, NULL, ?, NULL, NULL, NULL)''', content)
                 # If we encounter an interface statement.
                 elif LineType == 1:
                     statementId = insertStatementInterface( outputFile, record )
@@ -1251,7 +1412,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, ?, NULL)''', content)
+                    (?, NULL, NULL, ?, NULL, NULL)''', content)
                 # If we encounter an assignation statement.
                 elif LineType == 2:
                     statementId = insertStatementAssign( outputFile, record )
@@ -1262,7 +1423,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, ?)''', content)
+                    (?, NULL, NULL, NULL, ?, NULL)''', content)
                 # If we encounter a declaration statement.
                 elif LineType == 3:
                     statementId = insertStatementDeclare( outputFile, record )
@@ -1273,10 +1434,22 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, ?, NULL, NULL, NULL)''', content)
+                    (?, ?, NULL, NULL, NULL, NULL)''', content)
+                # If we encounter a role_transition statement.
+                elif LineType == 4:
+                    statementId = insertStatementRoleTrans( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
+                    content = (definitionId, statementId, )
+                    database.execute('''insert into tb_definition_content values
+                    (?, NULL, NULL, NULL, NULL, ?)''', content)
     except Exception as err:
         print("insertDefinition() Error: {0}".format(err))
         print("While parsing" + record[0] +'.\n')
+        sys.exit()
     outputFile.commit()
     database.close()
 
@@ -1302,15 +1475,15 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.7: \n")
+    print("Workflow component v1.2.8: \n")
     print("Please be patient, this MAY take awhile...")
     print("While you're waiting, play a game:\nhttp://portal.wecreatestuff.com/portal.php")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     seorigin( outputFile, lines )
-    print("Complete! For your time, enjoy this picture of a cat:")
-    print("http://catmacros.files.wordpress.com/2010/03/cat_portals.jpg")
-    print("Enjoy your fresh new database! Be careful, it may be hot. ;)\n")
+    print("\nComplete! For your time, enjoy this picture of a cat:")
+    print("http://catmacros.files.wordpress.com/2010/03/cat_portals.jpg\n")
+    print("Enjoy your fresh new database! Be careful, it may be hot. ;)")
 """
 The main function is run below.
 """
