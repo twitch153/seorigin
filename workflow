@@ -178,7 +178,7 @@ def getStatementType( line ):
     # Checks for rule calls
     elif re.search('^allow .*:.*;', line):
         statementValue = 0
-    elif re.search('^type_.*', line):
+    elif re.search('^type_change', line):
         statementValue = 0
     elif re.search('^dontaudit', line):
         statementValue = 0
@@ -207,7 +207,7 @@ def getStatementType( line ):
     elif re.search('^allow ', line):
         statementValue = 2
     # Checks for declaration calls
-    elif re.search('^type', line):
+    elif re.search('^type ', line):
         statementValue = 3
     elif re.search('^role ', line):
         statementValue = 3
@@ -215,8 +215,12 @@ def getStatementType( line ):
         statementValue = 3
     elif re.search('^\{', line):
         statementValue = 3
+    # Checks for role_transition calls
     elif re.search('^role_transition', line):
         statementValue = 4
+    # Checks for type_transition calls
+    elif re.search('^type_transition', line):
+        statementValue = 5
     else:
         print('Unknown line: ' + line)
         pass
@@ -241,6 +245,7 @@ def getDeclareType( declareLine ):
     except Exception as err:
         print("getDeclareType() Error: {0}".format(err))
         print("While determining type of line: %s" % declareLine,"\n")
+
 """
 getRuleType( ruleLine (String) ) goes through the lines of rules statements and returns the rule type as an int.
 """
@@ -249,8 +254,6 @@ def getRuleType( ruleLine ):
         ruleType = 0
         if re.search('^allow', ruleLine):
             ruleType = 1
-        elif re.search('^type_transition', ruleLine):
-            ruleType = 2
         elif re.search('^dontaudit', ruleLine):
             ruleType = 3
         elif re.search('^auditallow', ruleLine):
@@ -295,43 +298,83 @@ def getAssignationType( assignLine ):
         print("While determining assignment type from: %s.\n" % assignLine)
 
 """
+getLabelClass( label(File), classList (File), permList(File) ) read through the labels of the input and searches for each statement type and assigns
+a certain value to each label and then returns the value of the label.
+"""
+def getLabelClass( label, classList, permsList ):
+    labelClass = 1
+    if label in classList:
+        labelClass = 3
+    elif label in permsList:
+        labelClass = 4
+    elif re.search('.*_perms', label):
+        labelClass = 4
+    elif re.search('.*\_t$', label):
+        labelClass = 1
+    elif re.search('.*_type$', label):
+        labelClass = 1
+    elif re.search('\".*\"', label):
+        labelClass = 5
+    elif re.search('^\$.', label):
+        labelClass = 6
+    elif re.search('._*\_r$', label):
+        labelClass = 7
+    else:
+        labelClass = 2
+    return labelClass
+
+"""
 getFileName( record (String) ) goes through a source record and returns the file name.
 """
 def getFileName( record ):
-    sourceFile = ''
-    if re.search('^# \w+/.*$', record):
-        record = re.sub('^# ', '', record)
-        sourceFile = record
-    return sourceFile
+    try:
+        sourceFile = ''
+        oldRecord = record
+        if re.search('^# \w+/.*$', record):
+            record = re.sub('^# ', '', record)
+            sourceFile = record
+        return sourceFile
+    except Exception as err:
+        print("\ngetFileName Error: {0}".format(err))
+        print("While parsing file name from line: %s" % oldRecord,"\n")
 
 """
 getDefinitionName( record (String) ) goes through a definition record and returns the definition name.
 """
 def getDefinitionName( record ):
-    definitionName = ''
-    if re.search('^# ', record):
-        record = re.sub('^# ', '', record)
-        definitionName = record
-    return definitionName
+    try:
+        definitionName = ''
+        oldRecord = record
+        if re.search('^# ', record):
+            record = re.sub('^# ', '', record)
+            definitionName = record
+        return definitionName
+    except Exception as err:
+        print("\ngetDefinitionName() Error: {0}".format(err))
+        print("While parsing definition name from line: %s" % oldRecord,"\n")
 
 """
 getSourceLine( record (String) ) detects the source line of a source record, parses it out using regular expressions,
 then returns it.
 """
 def getSourceLine( record ):
-    recordLine = ''
-    sourceCheck = False
-    if re.search('^## source.*$', record):
-        sourceCheck = True
-    elif re.search('^\w*.*$', record):
-        sourceCheck = True
-    elif re.search('^\n', record):
+    try:
+        recordLine = ''
         sourceCheck = False
-    if sourceCheck:
-        record = re.sub('^## source.*$', '', record)
-        record = re.sub('^# .*$', '', record)
-    return record
-
+        oldRecord = record
+        if re.search('^## source.*$', record):
+            sourceCheck = True
+        elif re.search('^\w*.*$', record):
+            sourceCheck = True
+        elif re.search('^\n', record):
+            sourceCheck = False
+        if sourceCheck:
+            record = re.sub('^## source.*$', '', record)
+            record = re.sub('^# .*$', '', record)
+        return record
+    except Exception as err:
+        print("\ngetSourceLine() Error: {0}".format(err))
+        print("While parsing source line from line: %s" % oldRecord,"\n")
 """
 getLineNumber( record (String) ) goes through a source record and returns the line number.
 """
@@ -361,6 +404,7 @@ def getSourceFromRule( line ):
         setCheck = False
         if re.search('^ ', line):
             line = re.sub('^ ', '', line)
+        oldLine = line
         line = re.sub(':.*$', '', line)
         source = re.sub('^\w+[_\w+] ', '', line)
         if re.search('^{', source):
@@ -373,7 +417,8 @@ def getSourceFromRule( line ):
             source = re.sub(' .*$', '', source)
         return source
     except Exception as err:
-        print('\ngetSourceFromRule() Error{0}'.format(err),'\n')
+        print('\ngetSourceFromRule() Error{0}'.format(err))
+        print("While parsing source from line: %s" % oldLine,"\n")
 
 """
 getDestinationFromRule( line (String) ) goes through a rule statement such as this:
@@ -383,42 +428,46 @@ getDestinationFromRule( line (String) ) goes through a rule statement such as th
 and would return the destination label which in this case would be: $2.
 """
 def getDestinationFromRule( line ):
-    destination = ''
-    setCheck = False
-    if re.search('^ ', line):
-        line = re.sub('^ ', '', line)
-    line = re.sub(':.*$', '', line)
-    if re.search('{', line):
-        setCheck = True
-    elif re.search('}', line):
+    try:
+        destination = ''
         setCheck = False
-    if setCheck:
-        destination = re.sub('^\w+[_\w+] ', '', line)
-        if re.search('^\w+_\$\d+_\w+ ', destination):
-            destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
-        if re.search('^\$\d+[_w+]', destination):
-            destination = re.sub('^\$\d+_\w+ ', '', destination)
-        elif re.search('^\$\d+', destination):
-            destination = re.sub('^\$\d+ ', '', destination)
-        elif re.search('^\$\d+[_w+]', destination):
-            destination = re.sub('^\$\d+_\w+ ', '', destination)
-        elif re.search('^\w+', destination):
-            destination = re.sub('^\w+ ', '', destination)
-        elif re.search('^[~{].*} ', destination):
-            destination = re.sub('^[~{].*} ', '', destination)
-    else:
-        destination = re.sub('^\w+[_\w+] ', '', line)
-        if re.search('^\w+_\$\d+_\w+ ', destination):
-            destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
-        if re.search('^\$\d+[_w+]', destination):
-            destination = re.sub('^\$\d+_\w+ ', '', destination)
-        elif re.search('^\$\d+', destination):
-            destination = re.sub('^\$\d+ ', '', destination)
-        elif re.search('^\w+', destination):
-            destination = re.sub('^\w+ ', '', destination)
-        elif re.search('^[~{].*} ', destination):
-            destination = re.sub('^[~{].*} ', '', destination)
-    return destination
+        if re.search('^ ', line):
+            line = re.sub('^ ', '', line)
+        line = re.sub(':.*$', '', line)
+        if re.search('{', line):
+            setCheck = True
+        elif re.search('}', line):
+            setCheck = False
+        if setCheck:
+            destination = re.sub('^\w+[_\w+] ', '', line)
+            if re.search('^\w+_\$\d+_\w+ ', destination):
+                destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
+            if re.search('^\$\d+[_w+]', destination):
+                destination = re.sub('^\$\d+_\w+ ', '', destination)
+            elif re.search('^\$\d+', destination):
+                destination = re.sub('^\$\d+ ', '', destination)
+            elif re.search('^\$\d+[_w+]', destination):
+                destination = re.sub('^\$\d+_\w+ ', '', destination)
+            elif re.search('^\w+', destination):
+                destination = re.sub('^\w+ ', '', destination)
+            elif re.search('^[~{].*} ', destination):
+                destination = re.sub('^[~{].*} ', '', destination)
+        else:
+            destination = re.sub('^\w+[_\w+] ', '', line)
+            if re.search('^\w+_\$\d+_\w+ ', destination):
+                destination = re.sub('^\w+_\$\d+_\w+ ', '', destination)
+            if re.search('^\$\d+[_w+]', destination):
+                destination = re.sub('^\$\d+_\w+ ', '', destination)
+            elif re.search('^\$\d+', destination):
+                destination = re.sub('^\$\d+ ', '', destination)
+            elif re.search('^\w+', destination):
+                destination = re.sub('^\w+ ', '', destination)
+            elif re.search('^[~{].*} ', destination):
+                destination = re.sub('^[~{].*} ', '', destination)
+        return destination
+    except Exception as err:
+        print("getDestinationFromRule() Error: {0}".format(err))
+        print("While parsing destination from line: %s" % oldLine,'\n')
 
 """
 getClassFromRule( line (String) ) goes through a rule statement such as this:
@@ -428,19 +477,24 @@ getClassFromRule( line (String) ) goes through a rule statement such as this:
 and would return the destination label which in this case would be: file.
 """
 def getClassesFromRule( line ):
-    classes = ''
-    setCheck = False
-    line = re.sub('^.*:', '', line)
-    line = re.sub(';', '', line)
-    if re.search('^{', line):
-        setCheck = True
-    elif re.search('}', line):
+    try:
+        classes = ''
         setCheck = False
-    if setCheck:
-        classes = re.sub('}.*$', '}', line)
-    else:
-        classes = re.sub(' .*$', '', line)
-    return classes
+        oldLine = line
+        line = re.sub('^.*:', '', line)
+        line = re.sub(';', '', line)
+        if re.search('^{', line):
+            setCheck = True
+        elif re.search('}', line):
+            setCheck = False
+        if setCheck:
+            classes = re.sub('}.*$', '}', line)
+        else:
+            classes = re.sub(' .*$', '', line)
+        return classes
+    except Exception as err:
+        print("\ngetClassFromRule() Error: {0}".format(err))
+        print("While parsing classes from line: %s" % oldLine,"\n")
 
 """
 getPrivilegesFromRule( line (String) ) goes through a rule statement such as this:
@@ -454,6 +508,7 @@ def getPrivilegesFromRule( line ):
     try:
         permissions = ''
         setCheck = False
+        oldLine = line
         line = re.sub('^.*:', '', line)
         line = re.sub(';', '', line)
         if re.search('^{.*}', line):
@@ -464,7 +519,8 @@ def getPrivilegesFromRule( line ):
             permissions = re.sub('^\$\d+ ', '', line)
         return permissions
     except Exception as err:
-        print("\ngetPrivilegesFromRule() Error{0}".format(err),"\n")
+        print("\ngetPrivilegesFromRule() Error{0}".format(err))
+        print("While parsing privileges from line: %s" % oldLine,'\n')
 
 """
 getInterfaceArgs( line (String) ) reads in the line of an interface statement and returns in interface
@@ -475,6 +531,7 @@ We would return the arguments in as list like: ['$1', '$2']
 """
 def getInterfaceArgs( line ):
     try:
+        oldLine = line
         line = re.sub('^.*\(', '(', line)
         args = re.sub('[\(\)]', '', line)
         if re.search('^\w+[_\w+]$', args):
@@ -485,7 +542,8 @@ def getInterfaceArgs( line ):
             args = args.split(',')
         return args
     except Exception as err:
-        print('\ngetInterfaceArgs() Error: {0}'.format(err),"\n")
+        print('\ngetInterfaceArgs() Error: {0}'.format(err))
+        print("While parsing interface args from line: %s" % line,'\n')
 
 '''
 getInterfaceName( interfaceLine (String) ) grabs the name of the interface statement and returns the name as a string
@@ -498,7 +556,8 @@ def getInterfaceName( interfaceLine ):
         name = re.sub('\(.*\)', '', interfaceLine)
         return name
     except Exception as err:
-        print('\ngetInterfaceName() Error: {0}'.format(err),'\n')
+        print('\ngetInterfaceName() Error: {0}'.format(err))
+        print("While parsing interface name from line: %s" % interfaceLine,"\n")
 
 '''
 getTargetFromAssignation( line (String) ) takes in an assignation line such as:
@@ -511,13 +570,15 @@ in the second case it would be: file
 def getTargetFromAssignation( line ):
     try:
         target = ''
+        oldLine = line
         line = re.sub('^ ', '', line)
         line = re.sub('^\w+ ', '', line)
         target = re.sub(' .*;', '', line)
         target = re.sub('[, ]', '', target)
         return target
     except Exception as err:
-        print('\ngetTargetFromAssignation() Error: {0}'.format(err),"\n")
+        print('\ngetTargetFromAssignation() Error: {0}'.format(err))
+        print("While parsing Target from line: %s " % oldLine,"\n")
 
 '''
 getAssignedFromAssignation( line (String) ) takes in an assignation line such as:
@@ -552,7 +613,8 @@ def getAssignedFromAssignation( line ):
             assigned = re.sub(';', '', assigned)
         return assigned
     except Exception as err:
-        print('\ngetAssignedFromAssignation() Error: {0}'.format(err),"\n")
+        print('\ngetAssignedFromAssignation() Error: {0}'.format(err))
+        print("While parsing assigned from line: %s" % line,"\n")
 
 '''
 getTargetFromDeclare( declareLine (String) ) takes in a declaration line such as:
@@ -570,7 +632,7 @@ def getTargetFromDeclare( declareLine ):
         target = re.sub(';', '', target)
         return target 
     except Exception as err:
-        print("\ngetTargetFromDeclare() Error: {0}".format(err),"\n")
+        print("\ngetTargetFromDeclare() Error: {0}".format(err))
         print("While parsing target from line: %s.\n" % oldDeclare)
 
 '''
@@ -585,7 +647,7 @@ def getAliasFromDeclare( declareLine ):
         alias = re.sub(';', '', alias)
         return alias
     except Exception as err:
-        print('\ngetAliasFromDeclare() Error: {0}'.format(err), '\n')
+        print('\ngetAliasFromDeclare() Error: {0}'.format(err))
         print("While parsing alias from line: %s.\n" % declareLine)
 
 '''
@@ -604,7 +666,7 @@ def getArgFromRoleTrans( roleTransLine ):
         arg = re.sub(' .*_r;', '', arg)
         return arg
     except Exception as err:
-        print('\ngetArgFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('\ngetArgFromRoleTrans() Error: {0}'.format(err))
         print('While parsing argument from line: %s.\n' % oldLine)
 
 '''
@@ -623,12 +685,14 @@ def getTypeFromRoleTrans( roleTransLine ):
             roleTransTarget = re.sub('^\$\d+_\w+ ', '', roleTransTarget)
         elif re.search('^\$\d+', roleTransTarget):
             roleTransTarget = re.sub('^\$\d+ ', '', roleTransTarget)
+        if re.search('^\w+_\$\d+_\w+ ', roleTransTarget):
+            roleTransTarget = re.sub('^\w+_\$\d+_\w+ ', '', roleTransTarget)
         elif re.search('^\w+[_\w+]', roleTransTarget):
             roleTransTarget = re.sub('^\w+[_\w+] ', '', roleTransTarget)
         roleTransTarget = re.sub(' .*_r;', '', roleTransTarget)
         return roleTransTarget
     except Exception as err:
-        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err))
         print('While parsing type from line: %s.\n' % oldLine)
 
 '''
@@ -646,15 +710,144 @@ def getRoleFromRoleTrans( roleTransLine ):
         roleTransAssign = re.sub(';', '', roleTransAssign)
         return roleTransAssign
     except Exception as err:
-        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err),'\n')
+        print('\ngetTypeFromRoleTrans() Error: {0}'.format(err))
         print('While parsing role from line: %s.\n' % oldLine)
+
+'''
+getSourceFromTypeTrans( typeTransLine (String) ) takes in a type_transition line like:
+    type_transition $2 input_xevent_t:x_event $1_input_xevent_t;
+and returns the source which in this case would be: $2
+'''
+def getSourceFromTypeTrans( typeTransLine ):
+    try:
+        source = ''
+        if re.search('^ ', typeTransLine ):
+            typeTransLine = re.sub('^ *', '', typeTransLine)
+        source = re.sub('^type_transition ', '', typeTransLine)
+        source = re.sub(':.*$', ':', source)
+        source = re.sub(' .*:', '', source)
+        return source
+    except Exception as err:
+        print("\ngetSourceFromTypeTrans() Error: {0}".format(err))
+        print("While parsing source from line: %s" % typeTransLine,"\n")
+
+'''
+getResourceFromTypeTrans( typeTransLine (String) ) takes in a type_transition line like:
+    type_transition $2 input_xevent_t:x_event $1_input_xevent_t;
+and returns the resource which in this case would be: input_xevent_t
+'''
+def getResourceFromTypeTrans( typeTransLine ):
+    try:
+        resource = ''
+        if re.search('^ ', typeTransLine ):
+            typeTransLine = re.sub('^ *', '', typeTransLine)
+        resource = re.sub('^type_transition ', '', typeTransLine)
+        resource = re.sub(':.*$', '', resource)
+        resource = re.sub(' ', ':', resource)
+        resource = re.sub('.*:', '', resource)
+        return resource
+    except Exception as err:
+        print("\ngetResourceFromTypeTrans() Error: {0}".format(err))
+        print("While parsing resource from line: %s" % typeTransLine,"\n")
+
+'''
+getTargetFromTypeTrans( typeTransLine (String) ) takes in a type_transition line like:
+    type_transition $2 input_xevent_t:x_event $1_input_xevent_t;
+and returns the target which in this case would be: x_event
+'''
+def getTargetFromTypeTrans( typeTransLine ):
+    try:
+        target = ''
+        setCheck = False
+        if re.search('^ ', typeTransLine ):
+            typeTransLine = re.sub('^ *', '', typeTransLine)
+        target = re.sub('^type_transition ', '', typeTransLine)
+        target = re.sub('.*:', '', target)
+        if re.search('^{', target):
+            target = re.sub('}.*$', '}', target)
+        else:
+            target = re.sub(' .*$', '', target)
+        return target
+    except Exception as err:
+        print("\ngetTargetFromTypeTrans() Error: {0}".format(err))
+        print("While parsing target from line: %s" % typeTransLine,"\n")
+
+'''
+getClassFromTypeTrans( typeTransLine (String) ) takes in a type_transition line like:
+    type_transition $2 input_xevent_t:x_event $1_input_xevent_t;
+and returns the class which in this case would be: $1_input_xevent_t
+'''
+def getClassFromTypeTrans( typeTransLine ):
+    try:
+        Class = ''
+        if re.search('^ ', typeTransLine ):
+            typeTransLine = re.sub('^ *', '', typeTransLine)
+        Class = re.sub('^type_transition ', '', typeTransLine)
+        Class = re.sub('.*:', '', Class)
+        if re.search('^\$\d+[_\w+]', Class):
+            Class = re.sub('^\$\d+_\w+ ', '', Class)
+        elif re.search('^\$\d+', Class):
+            Class = re.sub('^\$\d+ ', '', Class)
+        if re.search('^\w+_\$\d+_\w+ ', Class):
+            Class = re.sub('^\w+_\$\d+_\w+ ', '', Class)
+        elif re.search('^\w+[_\w+]', Class):
+            Class = re.sub('^\w+[_\w+] ', '', Class)
+        elif re.search('^{', Class):
+            Class = re.sub('{.*} ', '', Class)
+        if re.search('.* .*', Class):
+            Class = re.sub(' .*;', '', Class)
+        else:
+            Class = re.sub(';', '', Class)
+        return Class
+    except Exception as err:
+        print("\ngetClassFromTypeTrans() Error: {0}".format(err))
+        print("While parsing class from line: %s" % typeTransLine,"\n")
+
+'''
+getFileFromTypeTrans( typeTransLine (String) ) takes in a type_transition line like:
+    type_transition $1 sepgsql_database_type:db_schema sepgsql_temp_object_t "pg_temp";
+and returns the file which in this case would be: "pg_tep"
+'''
+def getFileFromTypeTrans( typeTransLine ):
+    try:
+        File = ''
+        if re.search('^ ', typeTransLine ):
+            typeTransLine = re.sub('^ *', '', typeTransLine)
+        File = re.sub('.*:', '', typeTransLine)
+        if re.search('^\$\d+[_\w+]', File):
+            File = re.sub('^\$\d+_\w+ ', '', File)
+        elif re.search('^\$\d+', File):
+            File = re.sub('^\$\d+ ', '', File)
+        if re.search('^\w+_\$\d+_\w+ ', File):
+            File = re.sub('^\w+_\$\d+_\w+ ', '', File)
+        elif re.search('^\w+[_\w+]', File):
+            File = re.sub('^\w+[_\w+] ', '', File)
+        elif re.search('^{', File):
+            File = re.sub('{.*} ', '', File)
+        if re.search('.* .*', File):
+            File = re.sub('.* ', '', File)
+            File = re.sub(';', '', File)
+        else:
+            File = '' # No file label found.
+        return File
+    except Exception as err:
+        print("\ngetFileFromTypeTrans() Error: {0}".format(err))
+        print("While parsing file name from line: %s" % typeTransLine,"\n")
 
 """
 getClassList() grabs the information from "SELinux Class list" and returns it as a list.
 """
 def getClassList():
     try:
-        classList = readInput(os.path.join(os.environ["PWD"], 'SELinux_Class_list.txt'))
+        if os.path.exists(os.path.join(os.environ["PWD"], 'SELinux_Class_list.txt')):
+            classList = readInput(os.path.join(os.environ["PWD"], 'SELinux_Class_list.txt'))
+            if not os.access(os.path.join(os.environ["PWD"], 'SELinux_Class_list.txt'), os.R_OK):
+                print("\nFile SELinux_Class_list.txt does not have read permissions!\nPlease change file permissions.\n")
+                sys.exit()
+        else:
+            print("Critical Error!: SELinux_Class_list.txt not found in " + os.path.join(os.environ["PWD"]))
+            print("Please be sure it is under the correct name and in the present working directory.\n")
+            sys.exit()
         result = ['']
         for List in classList:
             List = re.sub('\n', '', List)
@@ -667,12 +860,23 @@ def getClassList():
 getPermsList() grabs the information from "SELinux Perms list" and returns it as a list.
 """
 def getPermsList():
-    permsList = readInput(os.path.join(os.environ["PWD"], 'SELinux_Perms_list.txt'))
-    result = ['']
-    for List in permsList:
-        List = re.sub('\n', '', List)
-        result.append(List)
-    return result
+    try:
+        if os.path.exists(os.path.join(os.environ["PWD"], 'SELinux_Perms_list.txt')):
+            permsList = readInput(os.path.join(os.environ["PWD"], 'SELinux_Perms_list.txt'))
+            if not os.access(os.path.join(os.environ["PWD"], 'SELinux_Perms_list.txt'), os.R_OK):
+                print("\nFile SELinux_Perms_list.txt does not have read permissions!\nPlease change file permissions.\n")
+                sys.exit()
+        else:
+            print("Critical Error!: SELinux_Perms_list.txt not found in " + os.path.join(os.environ["PWD"]))
+            print("Please be sure it is under the correct name and in the present working directory.\n")
+            sys.exit()
+        result = ['']
+        for List in permsList:
+            List = re.sub('\n', '', List)
+            result.append(List)
+        return result
+    except Exception as err:
+        print("\ngetPermList() Error: {0}".format(err),"\n")
 
 '''
 Globaly declares classList for later use in the script.
@@ -691,32 +895,6 @@ try:
 except Exception as err:
     print("Error declaring global variable permsList: {0}".format(err),"\n")
     sys.exit()
-
-"""
-getLabelClass( label(File), classList (File), permList(File) ) read through the labels of the input and searches for each statement type and assigns
-a certain value to each label and then returns the value of the label.
-"""
-def getLabelClass( label, classList, permsList ):
-    labelClass = 1
-    if label in classList:
-        labelClass = 3
-    elif label in permsList:
-        labelClass = 4
-    elif re.search('.*_perms', label):
-        labelClass = 4
-    elif re.search('.*\_t$', label):
-        labelClass = 1
-    elif re.search('.*_type$', label):
-        labelClass = 1
-    elif re.search('\".*\"', label):
-        labelClass = 5
-    elif re.search('^\$.', label):
-        labelClass = 6
-    elif re.search('._*\_r$', label):
-        labelClass = 7
-    else:
-        labelClass = 2
-    return labelClass
 
 """
 createTables( outputFile (sqlite3 database) ) creates the necessary tables for the SQLite3 database
@@ -774,25 +952,35 @@ def createTables( outputFile ):
         REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(TypeId) REFERENCES TB_LABELSET(LabelSetId),
         FOREIGN KEY(RoleId) REFERENCES TB_LABELSET(LabelSetId))''')
 
+        database.execute('''create table if not exists tb_statement_typetrans
+        (StatementId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, SourceId INTEGER NOT NULL,
+        ResourceId INTEGER NOT NULL, TargetId INTEGER NOT NULL, ClassId INTEGER NOT NULL,
+        FileId INTEGER, FOREIGN KEY(SourceId) REFERENCES TB_LABELSET(LabelSetId),
+        FOREIGN KEY(ResourceId) REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(TargetId)
+        REFERENCES TB_LABELSET(LabelSetId), FOREIGN KEY(ClassId) REFERENCES TB_LABELSET(LabelSetId),
+        FOREIGN KEY(FileId) REFERENCES TB_LABELSET(LabelSetId))''') 
+
         database.execute('''create table if not exists tb_definition_content
         (DefinitionId INTEGER NOT NULL, StatementDeclareId INTEGER, StatementRuleId INTEGER,
-        StatementInterfaceId INTEGER, StatementAssignId INTEGER, StatementRoleTransId, 
+        StatementInterfaceId INTEGER, StatementAssignId INTEGER, StatementRoleTransId, StatementTypeTransId, 
         FOREIGN KEY(DefinitionId) REFERENCES TB_DEFINITIONNAMES(DefinitionId), 
         FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
         FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId), 
         FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId), 
         FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId)
-        FOREIGN KEY(StatementRoleTransId) REFERENCES TB_STATEMENT_ROLETRANS(StatementId))''')
+        FOREIGN KEY(StatementRoleTransId) REFERENCES TB_STATEMENT_ROLETRANS(StatementId)
+        FOREIGN KEY(StatementTypeTransId) REFERENCES TB_STATEMENT_TYPETRANS(StatementId))''')
     
         database.execute('''create table if not exists tb_source
         (FileId INTEGER NOT NULL, LineNumber INTEGER NOT NULL, StatementDeclareId INTEGER,
         StatementRuleId INTEGER, StatementInterfaceId INTEGER, StatementAssignId INTEGER,
-        StatementRoleTransId INTEGER, FOREIGN KEY(StatementDeclareId) 
-        REFERENCES TB_STATEMENT_DECLARE(StatementId), FOREIGN KEY(StatementRuleId)
-        REFERENCES TB_STATEMENT_RULE(StatementId), FOREIGN KEY(StatementInterfaceId)
-        REFERENCES TB_STATEMENT_INTERFACE(StatementId), FOREIGN KEY(StatementAssignId)
-        REFERENCES TB_STATEMENT_ASSIGN(StatementId), FOREIGN KEY(StatementRoleTransId)
-        REFERENCES TB_STATEMENT_ROLETRANS(StatementId))''')
+        StatementRoleTransId INTEGER, StatementTypeTransId INTEGER, 
+        FOREIGN KEY(StatementDeclareId) REFERENCES TB_STATEMENT_DECLARE(StatementId), 
+        FOREIGN KEY(StatementRuleId) REFERENCES TB_STATEMENT_RULE(StatementId),
+        FOREIGN KEY(StatementInterfaceId) REFERENCES TB_STATEMENT_INTERFACE(StatementId),
+        FOREIGN KEY(StatementAssignId) REFERENCES TB_STATEMENT_ASSIGN(StatementId),
+        FOREIGN KEY(StatementRoleTransId) REFERENCES TB_STATEMENT_ROLETRANS(StatementId)
+        FOREIGN KEY(StatementTypeTransId) REFERENCES TB_STATEMENT_TYPETRANS(StatementId))''')
 
     except sqlite3.OperationalError as err:
         print("\ncreateTables() Error: {0}".format(err),"\n")
@@ -1168,7 +1356,7 @@ def insertStatementInterface( outputFile, line ):
     database.close()
 
 """
-insertStatementDeclare( outputFile (Sqlite3 database), line (String) ) disects the line that it is given, breaks the line apart up for proper insertion for tb_statement_declare and returns statementId.
+insertStatementDeclare( outputFile (Sqlite3 database), line (String) ) disects the line that it is given for information necessary for proper insertion for tb_statement_declare and returns statementId.
 """
 def insertStatementDeclare( outputFile, line ):
     try:
@@ -1207,6 +1395,9 @@ def insertStatementDeclare( outputFile, line ):
     outputFile.commit()
     database.close()
 
+'''
+insertStatementRoleTrans( outputFile (Sqlite3 database), line (String) ) disects the given line for information pertaining to the role_transition statement and then populates tb_statement_roletrans with that information.
+'''
 def insertStatementRoleTrans( outputFile, line ):
     try:
         database = outputFile.cursor()
@@ -1233,12 +1424,55 @@ def insertStatementRoleTrans( outputFile, line ):
         and TypeId = ? and RoleId = ?''', values)
         statementId = database.fetchone()
         if not type(statementId) == tuple:
-            print("insertStatementDeclare() Error: statementId is not an int for line: %s\n" % line)
+            print("insertStatementRoleTrans() Error: statementId is not of type int for line: %s\n" % line)
             sys.exit()
         return statementId
     except Exception as err:
         print('\ninsertStatementRoleTrans() Error: {0}'.format(err))
         print('While parsing line: %s\n' % line)
+    outputFile.commit()
+    database.close()
+
+'''
+insertStatementTypeTrans( outputFile (Sqlite3 database), line (String) ) disects the given line for information pertaining to the type_transition statement and then populates tb_statement_typetrans with that information.
+'''
+def insertStatementTypeTrans( outputFile, line ):
+    try:
+        fileId = 0
+        database = outputFile.cursor()
+        sourceLabel = getSourceFromTypeTrans( line )
+        resourceLabel = getResourceFromTypeTrans( line )
+        targetLabel = getTargetFromTypeTrans( line )
+        classLabel = getClassFromTypeTrans( line )
+        fileLabel = getFileFromTypeTrans( line )
+        sourceId = int(''.join(map(str, insertLabelSet( outputFile, sourceLabel ))))
+        resourceId = int(''.join(map(str, insertLabelSet( outputFile, resourceLabel ))))
+        targetId = int(''.join(map(str, insertLabelSet( outputFile, targetLabel ))))
+        classId = int(''.join(map(str, insertLabelSet( outputFile, classLabel ))))
+        if not fileLabel == '':
+            fileId = int(''.join(map(str, insertLabelSet( outputFile, fileLabel ))))
+        values = (sourceId, resourceId, targetId, classId, fileId)
+        database.execute('''select * from tb_statement_typetrans where SourceId = ? and ResourceId = ?
+        and TargetId = ? and ClassId = ? and FileId = ?''', values)
+        postPopCheck = database.fetchone()
+        if postPopCheck == None:
+            database.execute('''insert into tb_statement_typetrans values(NULL, ?, ?, ?, ?, ?)''', values)
+        else:
+            pass
+        database.execute('''select StatementId from tb_statement_typetrans where SourceId = ? and ResourceId = ?
+        and TargetId = ? and ClassId = ? and FileId = ?''', values)
+        statementId = database.fetchone()
+        if type(statementId) == tuple:
+            statementId = int(''.join(map(str, statementId)))
+        if not type(statementId) == int:
+            print("\ninsertStatementTypeTrans() Error: statementId is not of type int for line: %s" % line)
+            sys.exit()
+        return statementId 
+    except Exception as err:
+        print("insertStatementTypeTrans() Error: {0}".format(err))
+        print("While parsing line: %s" % line,"\n")
+    outputFile.commit()
+    database.close()
 
 """
 insertStatement( outputFile (Sqlite3 database), line (String), statementType (Int) ) takes in the statementType of a line, then depending on the statementType it will call a specific insertStatement function and return the statementId for that function.
@@ -1259,8 +1493,12 @@ def insertStatement( outputFile, line, statementType ):
         # If we enounter a declare statememt.
         elif statementType == 3:
             statementId = insertStatementDeclare( outputFile, line )
+        # If we encounter a role_transition statement.
         elif statementType == 4:
             statementId = insertStatementRoleTrans( outputFile, line )
+        # If we encounter a type_transition statement.
+        elif statementType == 5:
+            statementId = insertStatementTypeTrans( outputFile, line )
         return statementId
     except Exception as err:
         print("\ninsertStatement() Error: {0}".format(err),"\n")
@@ -1312,7 +1550,7 @@ def insertSource( outputFile, record ):
                 statementRuleId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, ?, NULL, NULL, NULL, NULL)''', source)
                 else:
                     pass
             # If we find an interface statement
@@ -1321,7 +1559,7 @@ def insertSource( outputFile, record ):
                 statementInterfaceId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, ?, NULL, NULL, NULL)''', source)
                 else:
                     pass
             # If we find an assignation statement
@@ -1330,7 +1568,7 @@ def insertSource( outputFile, record ):
                 statementAssignId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, ?, NULL, NULL)''', source)
                 else:
                     pass
             # If we find declaration statement
@@ -1339,7 +1577,7 @@ def insertSource( outputFile, record ):
                 statementDeclareId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL, NULL)''', source)
+                    database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL, NULL, NULL)''', source)
                 else:
                     pass
             elif statementType == 4:
@@ -1347,7 +1585,15 @@ def insertSource( outputFile, record ):
                 statementRoleTransId = ?''', source)
                 popCheck = database.fetchone()
                 if popCheck == None:
-                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, NULL, ?)''', source)
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, NULL, ?, NULL)''', source)
+                else:
+                    pass
+            elif statementType == 5:
+                database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
+                statementTypeTransId = ?''', source)
+                popCheck = database.fetchone()
+                if popCheck == None:
+                    database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, NULL, NULL, ?)''', source)
                 else:
                     pass
     except Exception as err:
@@ -1401,7 +1647,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId )
                     database.execute('''insert into tb_definition_content values 
-                    (?, NULL, ?, NULL, NULL, NULL)''', content)
+                    (?, NULL, ?, NULL, NULL, NULL, NULL)''', content)
                 # If we encounter an interface statement.
                 elif LineType == 1:
                     statementId = insertStatementInterface( outputFile, record )
@@ -1412,7 +1658,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, ?, NULL, NULL)''', content)
+                    (?, NULL, NULL, ?, NULL, NULL, NULL)''', content)
                 # If we encounter an assignation statement.
                 elif LineType == 2:
                     statementId = insertStatementAssign( outputFile, record )
@@ -1423,7 +1669,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, ?, NULL)''', content)
+                    (?, NULL, NULL, NULL, ?, NULL, NULL)''', content)
                 # If we encounter a declaration statement.
                 elif LineType == 3:
                     statementId = insertStatementDeclare( outputFile, record )
@@ -1434,7 +1680,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, ?, NULL, NULL, NULL, NULL)''', content)
+                    (?, ?, NULL, NULL, NULL, NULL, NULL)''', content)
                 # If we encounter a role_transition statement.
                 elif LineType == 4:
                     statementId = insertStatementRoleTrans( outputFile, record )
@@ -1445,7 +1691,18 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, NULL, ?)''', content)
+                    (?, NULL, NULL, NULL, NULL, ?, NULL)''', content)
+                # If we encounter a type_transition statement.
+                elif LineType == 5:
+                    statementId = insertStatementTypeTrans( outputFile, record )
+                    if type(statementId) == tuple:
+                        statementId = int(''.join(map(str, statementId)))
+                    if not type(statementId) == int:
+                        print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
+                        sys.exit()
+                    content = (definitionId, statementId, )
+                    database.execute('''insert into tb_definition_content values
+                    (?, NULL, NULL, NULL, NULL, NULL, ?)''', content)
     except Exception as err:
         print("insertDefinition() Error: {0}".format(err))
         print("While parsing" + record[0] +'.\n')
@@ -1475,7 +1732,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.8: \n")
+    print("Workflow component v1.2.9: \n")
     print("Please be patient, this MAY take awhile...")
     print("While you're waiting, play a game:\nhttp://portal.wecreatestuff.com/portal.php")
     (inputFile, outputFile) = parse_cmd_args()
