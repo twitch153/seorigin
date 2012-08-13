@@ -1557,8 +1557,8 @@ def cleanDefinition( outputFile, definitionName ):
         definitionName = (definitionName, )
         database.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
         definitionId = database.fetchone()
-        database.execute('''select StatementDeclareId, StatementRuleId, StatementInterfaceId, StatementAssignId from 
-        tb_definition_content where DefinitionId = ? ''', definitionId)
+        database.execute('''select StatementDeclareId, StatementRuleId, StatementInterfaceId, StatementAssignId,
+         StatementRoleTransId, StatementTypeTransId from tb_definition_content where DefinitionId = ? ''', definitionId)
         definitionContent = database.fetchone()
         if not definitionContent == None:
             database.execute('''delete from tb_definition_content where DefinitionId = ?''', definitionId)
