@@ -67,9 +67,6 @@ def parse_cmd_args():
             inputCheck = True
         elif o in ['-o', '--output']:
             outputFile=p
-            if not os.access(p, os.W_OK):
-                print("File %s does not have write permissions!\n" % p)
-                sys.exit()
             outputCheck= True
         elif o in ['-h', '--help']:
             usage()
@@ -301,7 +298,7 @@ def writeOut( outputFile, output ):
     try:
         parsedOut = open(outputFile, 'w') # This assigns a new file to parsedOut
     except Exception as err:
-        print("\n\nError: {0}".format(err),"\n\n")
+        print("\nwriteOut() Error: {0}".format(err),"\n\n")
         usage()
 
     parsedOut.write(output)
@@ -311,7 +308,7 @@ def writeOut( outputFile, output ):
 main(), this is where the magic happens.
 """
 def main():
-    print("Policy-parser v1.4.2: ")
+    print("Policy-parser v1.4.3: ")
     (inputFile, outputFile) = parse_cmd_args()
     lines = readInput( inputFile )
     output = parseFile( lines )
