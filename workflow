@@ -34,57 +34,6 @@ import sys, getopt, re, os, sqlite3, types
 
 def usage():
 	print("Proper usage:\nworkflow -i(--input) [file to parse] -o(--output) [database location]")
-def labelHelp():
-        print(" Labels: ")
-        print(" =======\n")
-        print("   Label classes: ")
-        print("   ============== ")
-        print("   Label classes are separate by seven classes: ")
-        print("   type label, class label, string label, attribute label, ")
-        print("   privilege label, argument label, and role label.\n")
-        print("   When inserting labels into SEorigin's database we consider the label class as\n   an integer.\n")
-        print("   Label integer types are as follows: ")
-        print("   1 = Type label\n   2 = Attribute Label\n   3 = Classes label\n   4 = Privilege label")
-        print("   5 = String/File label\n   6 = Argument label\n   7 = Role label\n")
-        print("\n Label Sets: ")
-        print(" ===========\n")
-        print("   Label Set Ids: ")
-        print("   ==============")
-        print("   Label set Ids are dynamically generated identification numbers")
-        print("   for label sets.")
-        print("   A label set can be considered as one label when going into the\n   \"insertLabelSet()\" function such as:\n\tfoo_t")
-        print("   it can also be considered a set of labels such as:\n\t{ foo_t bar_t }")
-        print("   Label Set Ids are generated in this fashion:\n")
-        print("   foo_t\n")
-        print("      labelId = 1")
-        print("      labelSetId = 1\n")
-        print("   { foo_t bar_t }\n")
-        print("      labelId = 1 (for foo_t)")
-        print("      labelSetId = 2")
-        print("      labelId = 2 (for bar_t)")
-        print("      labelSetId = 2\n")    
-def statementHelp():
-        print(" Statements: ")
-        print(" ===========\n")
-        print("   Statement classes: ")
-        print("   ===================")
-        print("   Statement classes are separate by four classes: ")
-        print("   rule statements, interface statements, assign statements, and\n   declare statements.\n")
-        print("   When searching for statements types throughout the parsed output we consider")
-        print("   the statement class as an integer.\n")
-        print("   Statement integer types are as follows: ")
-        print("   0 = Rule statement\n   1 = Interface statement\n   2 = Assign statement\n   3 = Declare statement")
-        print("\n Rule Statements: ")
-        print(" ================\n")
-        print("   Rule classes: ")
-        print("   ============= ")
-        print("   Rule classes are separate by five classes: ")
-        print("   allow statements, type statements, dontaudit statements,\n   auditallow statements and range_transition statements.\n")
-        print("   when inserting rule types into SEOrigin's database we consider")
-        print("   the rule class as an integer for simplicity.\n")
-        print("   Rule integer types are as follows: ")
-        print("   1 = Allow statements\n   2 = Type statements\n   3 = Dontaudit statements\n   4 = Auditallow statements")
-        print("   5 = Range_transition statements.\n")
 
 #TODO find range in range_transition statements such as:
 # range_transition $1 initrc_exec_t:process s0 - mls_systemhigh
@@ -126,9 +75,6 @@ def parse_cmd_args():
         elif o in ['-h', '--help']:
             print("\n")
             usage()
-            print("\n")
-            labelHelp()
-            statementHelp()
             sys.exit()
 
 # Sanity check to make sure the parsed information is getting written to some location.
@@ -255,17 +201,17 @@ def getRuleType( ruleLine ):
         if re.search('^allow', ruleLine):
             ruleType = 1
         elif re.search('^dontaudit', ruleLine):
-            ruleType = 3
+            ruleType = 2
         elif re.search('^auditallow', ruleLine):
-            ruleType = 4
+            ruleType = 3
         elif re.search('^range_transition', ruleLine):
-            ruleType = 5
+            ruleType = 4
         elif re.search('^neverallow', ruleLine):
-            ruleType = 6
+            ruleType = 5
         elif re.search('^type_member', ruleLine):
-            ruleType = 7
+            ruleType = 6
         elif re.search('^type_change', ruleLine):
-            ruleType = 8
+            ruleType = 7
         return ruleType
     except Exception as err:
         print("getRuleType() Error: {0}".format(err))
@@ -1732,7 +1678,7 @@ def seorigin( outputFile, lines ):
 main() is where all the magic happens! Like Disney land, just less...'cartooney'.
 """
 def main():
-    print("Workflow component v1.2.9: \n")
+    print("Workflow component v1.3: \n")
     print("Please be patient, this MAY take awhile...")
     print("While you're waiting, play a game:\nhttp://portal.wecreatestuff.com/portal.php")
     (inputFile, outputFile) = parse_cmd_args()
