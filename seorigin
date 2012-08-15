@@ -20,6 +20,7 @@ import sys, getopt, os, sqlite3, re
 """
 usage - Show the online help for seorigin
 """
+
 def usage():
   print("Usage:\nseorigin [OPTIONS] RULE_TYPE [EXPRESSION]")
   print("OPTIONS:")
@@ -64,6 +65,7 @@ def initSeoriginOpts():
   seOpts['dorole_trans'] = 0
   seOpts['dorange_trans'] = 0
   seOpts['dotypeattribute'] = 0
+  seOpts['hasinput'] = 0
   seOpts['hassource'] = 0
   seOpts['hastarget'] = 0
   seOpts['hasnewtype'] = 0
@@ -80,8 +82,8 @@ def initSeoriginOpts():
 parse_cmd_args - Read in user-provided arguments
 """
 def parse_cmd_args():
-  shortOpts = 'hATMCs:t:c:p:n:r:'
-  longOpts = ['help', 'allow', 'neverallow', 'auditallow', 'dontaudit', 'type_trans', 'type_member', 'type_change', 'typeattribute', 'role_allow', 'role_trans', 'range_trans', 'source=', 'target=', 'range=', 'newtype=', 'role_source=', 'role_target=', 'class=', 'perm=']
+  shortOpts = 'hATMCi:s:t:c:p:n:r:'
+  longOpts = ['help', 'allow', 'neverallow', 'auditallow', 'dontaudit', 'type_trans', 'type_member', 'type_change', 'typeattribute', 'role_allow', 'role_trans', 'range_trans', 'input=', 'source=', 'target=', 'range=', 'newtype=', 'role_source=', 'role_target=', 'class=', 'perm=']
   seOpts = initSeoriginOpts()
 
   opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
@@ -115,6 +117,9 @@ def parse_cmd_args():
     elif o in ['-t', '--target']:
       seOpts['hastarget'] = 1
       seOpts['target'] = p
+    elif o in ['-i', '--input']:
+      seOpts['hasinput'] = 1
+      seOpts['database'] = p
     elif o in ['-s', '--source']:
       seOpts['hassource'] = 1
       seOpts['source'] = p
@@ -147,10 +152,15 @@ def main():
   seoriginOptions = parse_cmd_args()
   # We sum all options. Since one may be given, the sum must be one.
   optionSum = seoriginOptions['doallow'] + seoriginOptions['doneverallow'] + seoriginOptions['doauditallow'] + seoriginOptions['dodontaudit'] + seoriginOptions['dotype_trans'] + seoriginOptions['dotype_member'] + seoriginOptions['dotype_change'] + seoriginOptions['dorole_allow'] + seoriginOptions['dorole_trans'] + seoriginOptions['dorange_trans'] + seoriginOptions['dotypeattribute']
-  try:
-    database = sqlite3.connect(os.path.join(os.environ["PWD"], 'seorigin.db'))
-  except Exception as err:
-    print(err)
+
+  if seoriginOptions['hasinput'] == 1:
+    try:
+      database = sqlite3.connect(os.path.join(os.environ["PWD"], seoriginOptions['database']))
+    except Exception as err:
+      print(err)
+      sys.exit()
+  else:
+    print("Database not specified, please specify input with -i or input= argument flags.")
     sys.exit()
   if (optionSum > 1):
     print("More than one RULE_TYPE given. Please only give one rule type to query.")
@@ -229,6 +239,7 @@ def main():
     else:
       print("typeattribute needs to have a source (type) and target (attribute) set.")
 
+# TODO Improve label set support.
 '''
 workflowGetLabelSetIdFromLabelSet - Takes in a labelSet such as { getattr open read }
 and returns the labelSetId from tb_labelSet.
@@ -256,10 +267,11 @@ def workflowGetLabelSetIdFromLabelSet(db, labelSet):
     database.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
     labelSetId = database.fetchone()
   else:
-    getLblSetId = 'select max(labelSetId) from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
+    getLblSetId = 'select labelSetId from tb_labelSet where labelId in %s group by labelSetId having count(labelId) = ?' % str(labelIds)
     db.execute(getLblSetId, (labelSetSize,))
-    labelSetId = int(''.join(map(str, db.fetchone())))
-
+    labelSetId = db.fetchone()
+    if type(labelSetId) == tuple:
+        labelSetId = int(''.join(map(str, labelSetId)))
   return labelSetId
 
 '''
@@ -279,17 +291,107 @@ def workflowGetLabelSetIdFromLabel( db, label ):
   
   return labelSetId
 
-"""
-TODO these functions need to be part of the workflow component
-"""
+def workflowGetParamLabelSetId( db ):
+  parameterLabelSetIds = []
+  labelSetIds = ''
+  db.execute('''select labelId from tb_label where Name like "%$%"''')
+  parameterLabelIds = db.fetchall()
+  for labelId in parameterLabelIds:
+    db.execute('''select labelSetId from tb_labelSet where labelId = ?''', labelId)
+    labelSetIds = db.fetchall()
+    for labelSetId in labelSetIds:
+      parameterLabelSetIds.append(labelSetId)
+  return parameterLabelSetIds
+
+def workflowFindRuleHitId( db, ruleClass, srcId, tgtId, clsId, prvId ):
+  try:
+    ruleIds = (ruleClass, srcId, tgtId, clsId, prvId)
+    db.execute('''select statementId from tb_statement_rule where ruleClass = ? and SourceId = ?
+    and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
+    hitId = db.fetchone()
+    return hitId
+  except Exception as err:
+    print("workflowFindRuleHitId Error: {0}".format(err),'\n')
+
+def workflowFindDefinitionNameAllow( db, ruleId ):
+  try:
+    db.execute('''select definitionId from tb_definition_content where statementRuleId = ?''', ruleId)
+    definitionId = db.fetchone()
+    db.execute('''select definitionName from tb_definitionNames where definitionId = ?''', definitionId)
+    definitionName = str(''.join(map(str, db.fetchone())))
+    return definitionName
+  except Exception as err:
+    print('workflowFindDefinitionNameAllow() Error: {0}'.format(err),"\n")
+
+def workflowGetLabelNameFromLabelSetId( db, labelSetId ):
+  Name = ''
+  db.execute('''select labelId from tb_labelSet where labelSetId = ?''', labelSetId)
+  labelId = db.fetchone()
+  if type(labelId) == tuple:
+    db.execute('''select Name from tb_label where labelId = ?''', labelId)
+    Name = str(''.join(map(str, db.fetchone())))
+  return Name
+
+def workflowFindRuleInSource( db, definitionName ):
+  try:
+    definitionName = (definitionName, )
+    db.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
+    definitionName = str(''.join(map(str, definitionName)))
+    definitionId = db.fetchone()
+    db.execute('''select statementId from tb_statement_interface where interfaceId = ?''', definitionId)
+    statementIds = db.fetchall()
+    for statementId in statementIds:
+      db.execute('''select fileId from tb_source where statementInterfaceId = ?''', statementId)
+      fileId = db.fetchone()
+      if fileId == None:
+        #print('allow %s %s:%s %s\nnot found in any source files.' % (src, oldtgt, cls, prv))
+        pass
+      else:
+        db.execute('''select arg1LabelId from tb_statement_interface where statementId = ?''', statementId)
+        argId1 = db.fetchone()
+        db.execute('''select arg2LabelId from tb_statement_interface where statementId = ?''', statementId)
+        argId2 = db.fetchone()
+        db.execute('''select arg3LabelId from tb_statement_interface where statementId = ?''', statementId)
+        argId3 = db.fetchone()
+        db.execute('''select arg4LabelId from tb_statement_interface where statementId = ?''', statementId)
+        argId4 = db.fetchone()
+        db.execute('''select arg5LabelId from tb_statement_interface where statementId = ?''', statementId)
+        argId5 = db.fetchone()
+        arg1Label = workflowGetLabelNameFromLabelSetId( db, argId1 )
+        arg2Label = workflowGetLabelNameFromLabelSetId( db, argId2 )
+        arg3Label = workflowGetLabelNameFromLabelSetId( db, argId3 )
+        arg4Label = workflowGetLabelNameFromLabelSetId( db, argId4 )
+        arg5Label = workflowGetLabelNameFromLabelSetId( db, argId5 )
+        db.execute('''select lineNumber from tb_source where statementInterfaceId = ?''', statementId)
+        lineNum = str(''.join(map(str, db.fetchone())))
+        db.execute('''select Filename from tb_files where fileId = ?''', fileId)
+        fileName = str(''.join(map(str, db.fetchone())))
+        definitionName
+        print(fileName +":" + lineNum)
+        if arg2Label == '':
+          print(" -> " + definitionName + "(%s)" % arg1Label)
+        elif arg3Label == '':
+          print(" -> " + definitionName + "(%s, %s)" % (arg1Label, arg2Label))
+        elif arg4Label == '':
+          print(' -> ' + definitionName + "(%s, %s, %s)" % (arg1Label, arg2Label, arg3Label) )
+        elif arg5Label == '':
+          print(' -> ' + definitionName + "(%s, %s, %s, %s)" % (arg1Label, arg2Label, arg3Label, arg4Label))
+        else:
+          print(' -> ' + definitionName + "(%s, %s, %s, %s, %s)" % (arg1Label, arg2Label, arg3Label, arg4Label, arg5Label))
+  except Exception as err:
+    print("workflowFindInSource() Error: {0}".format(err),"\n")
+
+#TODO these functions need to be part of the workflow component
+
 def workflowFindOrigin_allow(database, src, tgt, cls, prv):
 
+  db = database.cursor()
   prvLblSetId = 0
   srcLblSetId = 0
   tgtLblSetId = 0
   clsLblSetId = 0
+  parameterLabelSetIds = workflowGetParamLabelSetId( db )
   oldtgt = ''
-  db = database.cursor()
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
   else:
@@ -315,23 +417,32 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
   else:
     prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
-  print(ruleIds)
+  for parameterLabelSetId in parameterLabelSetIds:
+    parameterLabelSetId = int(''.join(map(str, parameterLabelSetId)))
+    ruleId = workflowFindRuleHitId(db, 1, parameterLabelSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+    if not ruleId == None:
+      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
+      workflowFindRuleInSource(db, definitionName)
+    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, parameterLabelSetId, clsLblSetId, prvLblSetId)
+    if not ruleId == None:
+      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
+      workflowFindRuleInSource(db, definitionName)
+    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, tgtLblSetId, parameterLabelSetId, prvLblSetId)
+    if not ruleId == None:
+      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
+      workflowFindRuleInSource(db, definitionName)
+    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, tgtLblSetId, clsLblSetId, parameterLabelSetId)
+    if not ruleId == None:
+      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
+      workflowFindRuleInSource(db, definitionName)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 1 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
-  if ruleId == None:
-    print('Statement: "allow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
-    sys.exit()
-  db.execute('''select fileId from tb_source where statementRuleId = ?''', ruleId)
-  fileId = db.fetchone()
-  if fileId == None:
-    print('allow %s %s:%s %s not found in any source files.' % (src, oldtgt, cls, prv))
-  db.execute('''select lineNumber from tb_source where statementRuleId = ?''', ruleId)
-  lineNum = str(''.join(map(str, db.fetchone())))
-  db.execute('''select Filename from tb_files where fileId = ?''', fileId)
-  fileName = str(''.join(map(str, db.fetchone())))
-  print(fileName +":" + lineNum)
-  print('  -> allow %s %s:%s %s' % (src, oldtgt, cls, prv))
+#  if ruleId == None:
+#    print('Statement: "allow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
+#    sys.exit()
+
+#  print('  -> allow %s %s:%s %s' % (src, oldtgt, cls, prv))
 
 def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
 
