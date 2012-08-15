@@ -46,25 +46,33 @@ potential updates on general policy lines.
 This also makes it easier for users to understand how policies become as 
 they are.
 
-Testing
--------
+How to use:
+-----------
 
  In order to test this you would need to do the following:
- 1.) Make a debug.log by creating a policy package - "make <policy>.pp" in the refpolicy folder.
- 2.) Grab input from debug.log with policy parser script - "python policy-parser -i <directory of file> -o <desired output location>
+ 1.) Make a debug.log for a SELinux policy creating a policy package - "make <policy>.pp" in the refpolicy folder.
+ 2.) Grab input from debug.log and parse it with  the policy-parser script - 
+ "python policy-parser -i <directory of and name debug file> -o <desired output location>"
+                                    or
+ "./policy-parser -i <directory of and name of debug file> -o <desired output location>"
  3.) Set the symbolic link for python to python3.2 by running the command: 
              ln -f /usr/bin/python3.2 /usr/bin/python 
      or for Gentoo users:
 	     eselect python list
 	     Find the number corresponding to the version of python that is 3.2
 	     eselect python set <corresponding number>
-Note
-----
+ 4.) Create a database for the parsed output of SELinux source and definition records with the workflow component script -
+ "python workflow -i <directory and name of parsed output from policy-parser> -o <desired output location for database>"
+                                                           or
+ "./workflow -i <directory and name of parsed output from policy-parser> -o <desired output location for database>"
+
+Note:
+-----
 
 In order to find the label class of class labels and permission labels two separate files called "SELinux Class List" and "SELinux Perms list". If for any reason these change with an update to SELinux or you add your own perms and classes and would like seorigin to classify them as such then you must add them to these files.
 
-Debugging
----------
+Debugging:
+----------
 
 To debug in the workflow component one can make use of the writeOut() function.
 
