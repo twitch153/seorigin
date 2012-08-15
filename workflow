@@ -1432,7 +1432,7 @@ def insertStatement( outputFile, line, statementType ):
             statementId = insertStatementRule( outputFile, line )
         # If we encounter an interface statement.
         elif statementType == 1:
-            insertStatementInterface( outputFile, line )
+            statementId = insertStatementInterface( outputFile, line )
         # If we encounter an assign statement.
         elif statementType == 2:
             statementId = insertStatementAssign( outputFile, line )
@@ -1526,6 +1526,7 @@ def insertSource( outputFile, record ):
                     database.execute('''insert into tb_source values (?, ?, ?, NULL, NULL, NULL, NULL, NULL)''', source)
                 else:
                     pass
+            # If we find role_transition statement
             elif statementType == 4:
                 database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
                 statementRoleTransId = ?''', source)
@@ -1534,6 +1535,7 @@ def insertSource( outputFile, record ):
                     database.execute('''insert into tb_source values (?, ?, NULL, NULL, NULL, NULL, ?, NULL)''', source)
                 else:
                     pass
+            # If we find type_transition statement
             elif statementType == 5:
                 database.execute('''select fileId from tb_source where fileId = ? and lineNumber = ? and
                 statementTypeTransId = ?''', source)
