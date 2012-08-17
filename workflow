@@ -1594,8 +1594,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId )
-                    database.execute('''insert into tb_definition_content values 
-                    (?, NULL, ?, NULL, NULL, NULL, NULL)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ?
+                    and statementRuleId = ?''', content)
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values 
+                        (?, NULL, ?, NULL, NULL, NULL, NULL)''', content)
                 # If we encounter an interface statement.
                 elif LineType == 1:
                     statementId = insertStatementInterface( outputFile, record )
@@ -1605,8 +1609,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId, )
-                    database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, ?, NULL, NULL, NULL)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ?
+                    and statementInterfaceId = ?''', content)
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values
+                        (?, NULL, NULL, ?, NULL, NULL, NULL)''', content)
                 # If we encounter an assignation statement.
                 elif LineType == 2:
                     statementId = insertStatementAssign( outputFile, record )
@@ -1616,8 +1624,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId, )
-                    database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, ?, NULL, NULL)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ?
+                    and statementAssignId = ?''', content)
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values
+                        (?, NULL, NULL, NULL, ?, NULL, NULL)''', content)
                 # If we encounter a declaration statement.
                 elif LineType == 3:
                     statementId = insertStatementDeclare( outputFile, record )
@@ -1627,8 +1639,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId, )
-                    database.execute('''insert into tb_definition_content values
-                    (?, ?, NULL, NULL, NULL, NULL, NULL)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ?
+                    and statementDeclareId = ?''', content)
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values
+                        (?, ?, NULL, NULL, NULL, NULL, NULL)''', content)
                 # If we encounter a role_transition statement.
                 elif LineType == 4:
                     statementId = insertStatementRoleTrans( outputFile, record )
@@ -1638,8 +1654,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId, )
-                    database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, NULL, ?, NULL)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ?
+                    and statementRoleTransId = ?''', content)
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values
+                        (?, NULL, NULL, NULL, NULL, ?, NULL)''', content)
                 # If we encounter a type_transition statement.
                 elif LineType == 5:
                     statementId = insertStatementTypeTrans( outputFile, record )
@@ -1649,8 +1669,12 @@ def insertDefinition( outputFile, record ):
                         print("insertDefinition() Error: statementId is not of type int\nWhile parsing line: %s.\n" % record)
                         sys.exit()
                     content = (definitionId, statementId, )
-                    database.execute('''insert into tb_definition_content values
-                    (?, NULL, NULL, NULL, NULL, NULL, ?)''', content)
+                    database.execute('''select * from tb_definition_content where definitionId = ? 
+                    and statementTypeTransId = ?''', content):
+                    postPopCheck = database.fetchone()
+                    if postPopCheck == None:
+                        database.execute('''insert into tb_definition_content values
+                        (?, NULL, NULL, NULL, NULL, NULL, ?)''', content)
     except Exception as err:
         print("insertDefinition() Error: {0}".format(err))
         print("While parsing" + record[0] +'.\n')
