@@ -65,6 +65,7 @@ def initSeoriginOpts():
   seOpts['dorole_trans'] = 0
   seOpts['dorange_trans'] = 0
   seOpts['dotypeattribute'] = 0
+  seOpts['dodebugging'] = 0
   seOpts['hasinput'] = 0
   seOpts['hassource'] = 0
   seOpts['hastarget'] = 0
@@ -77,13 +78,12 @@ def initSeoriginOpts():
 
   return seOpts
 
-
 """
 parse_cmd_args - Read in user-provided arguments
 """
 def parse_cmd_args():
-  shortOpts = 'hATMCi:s:t:c:p:n:r:'
-  longOpts = ['help', 'allow', 'neverallow', 'auditallow', 'dontaudit', 'type_trans', 'type_member', 'type_change', 'typeattribute', 'role_allow', 'role_trans', 'range_trans', 'input=', 'source=', 'target=', 'range=', 'newtype=', 'role_source=', 'role_target=', 'class=', 'perm=']
+  shortOpts = 'hdATMCi:s:t:c:p:n:r:'
+  longOpts = ['help', 'debug', 'allow', 'neverallow', 'auditallow', 'dontaudit', 'type_trans', 'type_member', 'type_change', 'typeattribute', 'role_allow', 'role_trans', 'range_trans', 'input=', 'source=', 'target=', 'range=', 'newtype=', 'role_source=', 'role_target=', 'class=', 'perm=']
   seOpts = initSeoriginOpts()
 
   opts, extraparams = getopt.getopt(sys.argv[1:], shortOpts, longOpts)
@@ -120,6 +120,8 @@ def parse_cmd_args():
     elif o in ['-i', '--input']:
       seOpts['hasinput'] = 1
       seOpts['database'] = p
+    elif o in ['-d', '--debug']:
+      seOpts['dodebugging'] = 1
     elif o in ['-s', '--source']:
       seOpts['hassource'] = 1
       seOpts['source'] = p
@@ -141,9 +143,7 @@ def parse_cmd_args():
     elif o in ['-r', '--range']:
       seOpts['hasrange'] = 1
       seOpts['range'] = p
-
   return seOpts
-
 
 """
 main - Parse user arguments, handle potential errors and call workflow query functions
@@ -152,7 +152,9 @@ def main():
   seoriginOptions = parse_cmd_args()
   # We sum all options. Since one may be given, the sum must be one.
   optionSum = seoriginOptions['doallow'] + seoriginOptions['doneverallow'] + seoriginOptions['doauditallow'] + seoriginOptions['dodontaudit'] + seoriginOptions['dotype_trans'] + seoriginOptions['dotype_member'] + seoriginOptions['dotype_change'] + seoriginOptions['dorole_allow'] + seoriginOptions['dorole_trans'] + seoriginOptions['dorange_trans'] + seoriginOptions['dotypeattribute']
-
+  debugScript = False
+  if seoriginOptions['dodebugging'] == 1:
+    debugScript = True
   if seoriginOptions['hasinput'] == 1:
     try:
       database = sqlite3.connect(os.path.join(os.environ["PWD"], seoriginOptions['database']))
@@ -173,61 +175,61 @@ def main():
   if (seoriginOptions['doallow'] == 1):
     # allow <source> <target>:<class> <permission>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
-      workflowFindOrigin_allow(database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+      workflowFindOrigin_allow(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
     else:
       print("allow queries need to have a source, target, class and permission set.")
   elif (seoriginOptions['doneverallow'] == 1):
     # neverallow <source> <target>:<class> <permission>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
-      workflowFindOrigin_neverallow(database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+      workflowFindOrigin_neverallow(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
     else:
       print("neverallow queries need to have a source, target, class and permission set.")
   elif (seoriginOptions['doauditallow'] == 1):
     # auditallow <source> <target>:<class> <permission>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
-      workflowFindOrigin_auditallow(database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+      workflowFindOrigin_auditallow(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
     else:
       print("auditallow queries need to have a source, target, class and permission set.")
   elif (seoriginOptions['dodontaudit'] == 1):
     # dontaudit <source> <target>:<class> <permission>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['haspermission'] == 1):
-      workflowFindOrigin_dontaudit(database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
+      workflowFindOrigin_dontaudit(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['permission'])
     else:
       print("dontaudit queries need to have a source, target, class and permission set.")
   elif (seoriginOptions['dotype_trans'] == 1):
     # type_transition <source> <target>:<class> <newtype>
     if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
-      workflowFindOrigin_type_transition(database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+      workflowFindOrigin_type_transition(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
     else:
       print("type_transition queries need to have a source, target, class and newtype set.")
   elif (seoriginOptions['dotype_member'] == 1):
     # type_member <source> <target>:<class> <newtype>
     if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
-      workflowFindOrigin_type_member(database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+      workflowFindOrigin_type_member(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
     else:
       print("type_member queries need to have a source, target, class and newtype set.")
   elif (seoriginOptions['dotype_change'] == 1):
     # type_change <source> <target>:<class> <newtype>
     if (seoriginOptions['hassource'] == 1) & (seoriginptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasnewtype'] == 1):
-      workflowFindOrigin_type_change(database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
+      workflowFindOrigin_type_change(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seOriginOptions['class'], seoriginOptions['newtype'])
     else:
       print("type_change queries need to have a source, target, class and newtype set.")
   elif (seoriginOptions['dorole_allow'] == 1):
     # allow <source_role> <target_role>
     if (seoriginOptions['hasrole_source'] == 1) & (seoriginOptions['hasrole_target'] == 1):
-      workflowFindOrigin_allowrole(database, seoriginOptions['role_source'], seoriginOptions['role_target'])
+      workflowFindOrigin_allowrole(debugScript, database, seoriginOptions['role_source'], seoriginOptions['role_target'])
     else:
       print("role allows need to have a source and target role set.")
   elif (seoriginOptions['dorole_trans'] == 1):
     # role_transition <source_role> <type> <target_role>
     if (seoriginOptions['hasrole_source'] == 1) & (seoriginOptions['hassource'] == 1) & (seoriginOptions['hasrole_target'] == 1):
-      workflowFindOrigin_role_transition(database, seoriginOptions['role_source'], seoriginOptions['source'], seoriginOptions['role_target'])
+      workflowFindOrigin_role_transition(debugScript, database, seoriginOptions['role_source'], seoriginOptions['source'], seoriginOptions['role_target'])
     else:
       print("role_transition needs to have a source role, target role and source type set.")
   elif (seoriginOptions['dorange_trans'] == 1):
     # range_transition <source> <target>:<class> <range>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1) & (seoriginOptions['hasclass'] == 1) & (seoriginOptions['hasrange'] == 1):
-      workflowFindOrigin_range_transition(database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['range'])
+      workflowFindOrigin_range_transition(debugScript, database, seoriginOptions['source'], seoriginOptions['target'], seoriginOptions['class'], seoriginOptions['range'])
     else:
       print("range_transition needs to have a source, target, class and range set.")
   elif (seoriginOptions['dotypeattribute'] == 1):
@@ -235,9 +237,12 @@ def main():
     # or
     # typeattribute <sourcetype> <targettype>
     if (seoriginOptions['hassource'] == 1) & (seoriginOptions['hastarget'] == 1):
-      workflowFindOrigin_typeattribute(database, seoriginOptions['source'], seoriginOptions['target'])
+      workflowFindOrigin_typeattribute(debugScript, database, seoriginOptions['source'], seoriginOptions['target'])
     else:
       print("typeattribute needs to have a source (type) and target (attribute) set.")
+
+def printdebug(statement, variable):
+  print("DEBUG: seorigin: <lineNumber in script> - " + statement + variable)
 
 # TODO Improve label set support.
 '''
@@ -291,7 +296,7 @@ def workflowGetLabelSetIdFromLabel( db, label ):
   
   return labelSetId
 
-def workflowGetParamLabelSetId( db ):
+def workflowGetParamLabelSetId( debugBool, db ):
   parameterLabelSetIds = []
   labelSetIds = ''
   db.execute('''select labelId from tb_label where Name like "%$%"''')
@@ -301,25 +306,38 @@ def workflowGetParamLabelSetId( db ):
     labelSetIds = db.fetchall()
     for labelSetId in labelSetIds:
       parameterLabelSetIds.append(labelSetId)
+  if debugBool == True:
+    print("\nReturning parameter label set Ids: \n" + str(parameterLabelSetIds))
   return parameterLabelSetIds
 
-def workflowFindRuleHitId( db, ruleClass, srcId, tgtId, clsId, prvId ):
+def workflowFindRuleHitId( debugBool, db, ruleClass, srcId, tgtId, clsId, prvId ):
   try:
     ruleIds = (ruleClass, srcId, tgtId, clsId, prvId)
     db.execute('''select statementId from tb_statement_rule where ruleClass = ? and SourceId = ?
     and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
     hitId = db.fetchone()
-    return hitId
+    if not hitId == None:
+      if debugBool == True:
+        print("\nFound statement Id: " + hitId)
+        print("Where Source Id = %s Target Id = %s Classes Id = %s and Privilege Id = %s" % ( srcId, tgtId, clsId, prvId ))
+      return hitId
+    else:
+      if debugBool == True:
+        print("\nFound no statement Id")
+        print("Where Source Id = %s Target Id = %s Classes Id = %s and Privilege Id = %s" % ( srcId, tgtId, clsId, prvId ))
   except Exception as err:
     print("workflowFindRuleHitId Error: {0}".format(err),'\n')
 
-def workflowFindDefinitionNameAllow( db, ruleId ):
+def workflowFindDefinitionNameAllow( debugBool, db, ruleId ):
   try:
     db.execute('''select definitionId from tb_definition_content where statementRuleId = ?''', ruleId)
     definitionId = db.fetchone()
     db.execute('''select definitionName from tb_definitionNames where definitionId = ?''', definitionId)
     definitionName = str(''.join(map(str, db.fetchone())))
-    return definitionName
+    if debugBool == True:
+      print("\nFound definition name " + definitionName + " where definition Id = " + str(''.join(map(str, definitionId))))
+      print("For statement rule Id: " + str(''.join(map(str, ruleId))))
+    workflowFindRuleInSource(debugBool, db, definitionName)
   except Exception as err:
     print('workflowFindDefinitionNameAllow() Error: {0}'.format(err),"\n")
 
@@ -332,7 +350,7 @@ def workflowGetLabelNameFromLabelSetId( db, labelSetId ):
     Name = str(''.join(map(str, db.fetchone())))
   return Name
 
-def workflowFindRuleInSource( db, definitionName ):
+def workflowFindRuleInSource( debugBool, db, definitionName ):
   try:
     definitionName = (definitionName, )
     db.execute('''select definitionId from tb_definitionNames where definitionName = ?''', definitionName)
@@ -383,14 +401,14 @@ def workflowFindRuleInSource( db, definitionName ):
 
 #TODO these functions need to be part of the workflow component
 
-def workflowFindOrigin_allow(database, src, tgt, cls, prv):
+def workflowFindOrigin_allow(debugBool, database, src, tgt, cls, prv):
 
   db = database.cursor()
   prvLblSetId = 0
   srcLblSetId = 0
   tgtLblSetId = 0
   clsLblSetId = 0
-  parameterLabelSetIds = workflowGetParamLabelSetId( db )
+  parameterLabelSetIds = workflowGetParamLabelSetId( debugBool, db )
   oldtgt = ''
   if re.search('{', src):
     srcLblSetId = workflowGetLabelSetIdFromLabelSet(db, src)
@@ -419,22 +437,54 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
   ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   for parameterLabelSetId in parameterLabelSetIds:
     parameterLabelSetId = int(''.join(map(str, parameterLabelSetId)))
-    ruleId = workflowFindRuleHitId(db, 1, parameterLabelSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+    ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
     if not ruleId == None:
-      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
-      workflowFindRuleInSource(db, definitionName)
-    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, parameterLabelSetId, clsLblSetId, prvLblSetId)
+      workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+    ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, parameterLabelSetId, clsLblSetId, prvLblSetId)
     if not ruleId == None:
-      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
-      workflowFindRuleInSource(db, definitionName)
-    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, tgtLblSetId, parameterLabelSetId, prvLblSetId)
+      workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+    ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, parameterLabelSetId, prvLblSetId)
     if not ruleId == None:
-      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
-      workflowFindRuleInSource(db, definitionName)
-    ruleId = workflowFindRuleHitId(db, 1, srcLblSetId, tgtLblSetId, clsLblSetId, parameterLabelSetId)
+      workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+    ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, clsLblSetId, parameterLabelSetId)
     if not ruleId == None:
-      definitionName = str(''.join(map(str, workflowFindDefinitionNameAllow(db, ruleId))))
-      workflowFindRuleInSource(db, definitionName)
+      workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+    for parameterId in parameterLabelSetIds:
+      parameterId = int(''.join(map(str, parameterId)))
+      ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, clsLblSetId, prvLblSetId)
+      if not ruleId == None:
+        workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+      ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, parameterId, prvLblSetId)
+      if not ruleId == None:
+        workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+      ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, clsLblSetId, parameterId)
+      if not ruleId == None:
+        workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+      ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, parameterLabelSetId, clsLblSetId, parameterId)
+      if not ruleId == None:
+        workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+      ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, parameterLabelSetId, parameterId)
+      if not ruleId == None:
+        workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+      for labelSetId in parameterLabelSetIds:
+        labelSetId = int(''.join(map(str, labelSetId)))
+        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, labelSetId, prvLblSetId)
+        if not ruleId == None:
+          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, labelSetId, clsLblSetId, parameterId)
+        if not ruleId == None:
+          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, labelSetId, parameterId)
+        if not ruleId == None:
+          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+        ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, parameterLabelSetId, labelSetId, parameterId)
+        if not ruleId == None:
+          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+        for Id in parameterLabelSetIds:
+          Id = int(''.join(map(str, Id)))
+          ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, labelSetId, Id)
+        if not ruleId == None:
+          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
   db.execute('''select statementId from tb_statement_rule where ruleClass = 1 and SourceId = ?
   and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
   ruleId = db.fetchone()
@@ -444,7 +494,7 @@ def workflowFindOrigin_allow(database, src, tgt, cls, prv):
 
 #  print('  -> allow %s %s:%s %s' % (src, oldtgt, cls, prv))
 
-def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
+def workflowFindOrigin_neverallow(debugBool, database, src, tgt, cls, prv):
 
   prvLblSetId = 0
   srcLblSetId = 0
@@ -495,7 +545,7 @@ def workflowFindOrigin_neverallow(database, src, tgt, cls, prv):
   print(fileName +":" + lineNum)
   print('  -> neverallow %s %s:%s %s' % (src, oldtgt, cls, prv))
 
-def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
+def workflowFindOrigin_auditallow(debugBool, database, src, tgt, cls, prv):
 
   prvLblSetId = 0
   srcLblSetId = 0
@@ -546,7 +596,7 @@ def workflowFindOrigin_auditallow(database, src, tgt, cls, prv):
   print(fileName +":" + lineNum)
   print('  -> auditallow %s %s:%s %s' % (src, oldtgt, cls, prv))
 
-def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
+def workflowFindOrigin_dontaudit(debugBool, database,src, tgt, cls, prv):
 
   prvLblSetId = 0
   srcLblSetId = 0
@@ -597,7 +647,7 @@ def workflowFindOrigin_dontaudit(database,src, tgt, cls, prv):
   print(fileName +":" + lineNum)
   print('  -> dontaudit %s %s:%s %s' % (src, oldtgt, cls, prv))
 
-def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
+def workflowFindOrigin_type_transition(debugBool, database, src, tgt, cls, ntp):
 
   srcLblSetId = 0
   tgtLblSetId = 0
@@ -648,7 +698,7 @@ def workflowFindOrigin_type_transition(database, src, tgt, cls, ntp):
   print(fileName +":" + lineNum)
   print('  -> type_transition %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
-def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
+def workflowFindOrigin_type_member(debugBool, database, src, tgt, cls, ntp):
 
   srcLblSetId = 0
   tgtLblSetId = 0
@@ -699,7 +749,7 @@ def workflowFindOrigin_type_member(database, src, tgt, cls, ntp):
   print(fileName +":" + lineNum)
   print('  -> type_member %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
-def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
+def workflowFindOrigin_type_change(debugBool, database, src, tgt, cls, ntp):
 
   srcLblSetId = 0
   tgtLblSetId = 0
@@ -751,14 +801,14 @@ def workflowFindOrigin_type_change(database, src, tgt, cls, ntp):
   print('  -> type_change %s %s:%s %s' % (src, oldtgt, cls, ntp))
 
 # TODO Finish workflowFindOrigin_allowrole()
-def workflowFindOrigin_allowrole(database, srl, trl):
+def workflowFindOrigin_allowrole(debugBool, database, srl, trl):
   print("Looking for: allow %s %s" % (srl, trl))
 
 # TODO finish workflowFindOrigin_role_tranisition()
-def workflowFindOrigin_role_transition(database, srl, src, trl):
+def workflowFindOrigin_role_transition(debugBool, database, srl, src, trl):
   print("Looking for: role_transition %s %s %s" % (srl, src, trl))
 
-def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
+def workflowFindOrigin_range_transition(debugBool, database, src, tgt, cls, rng):
 
   srcLblSetId = 0
   tgtLblSetId = 0
@@ -809,7 +859,7 @@ def workflowFindOrigin_range_transition(database, src, tgt, cls, rng):
   print(fileName +":" + lineNum)
   print('  -> range_transition %s %s:%s %s' % (src, oldtgt, cls, rng))
 
-def workflowFindOrigin_typeattribute(database, src, tgt):
+def workflowFindOrigin_typeattribute(debugBool, database, src, tgt):
 
   srcSetId = 0
   tgtSetId = 0
