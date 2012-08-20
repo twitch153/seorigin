@@ -326,7 +326,8 @@ def workflowFindRuleHitId( debugBool, db, ruleClass, srcId, tgtId, clsId, prvId 
         print("\nFound no statement Id")
         print("Where Source Id = %s Target Id = %s Classes Id = %s and Privilege Id = %s" % ( srcId, tgtId, clsId, prvId ))
   except Exception as err:
-    print("workflowFindRuleHitId Error: {0}".format(err),'\n')
+    print("workflowFindRuleHitId Error: {0}".format(err))
+    print(ruleIds)
 
 def workflowFindDefinitionNameAllow( debugBool, db, ruleId ):
   try:
@@ -434,7 +435,6 @@ def workflowFindOrigin_allow(debugBool, database, src, tgt, cls, prv):
     prvLblSetId = workflowGetLabelSetIdFromLabelSet(db, prv)
   else:
     prvLblSetId = workflowGetLabelSetIdFromLabel(db, prv)
-  ruleIds = (srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
   for parameterLabelSetId in parameterLabelSetIds:
     parameterLabelSetId = int(''.join(map(str, parameterLabelSetId)))
     ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
@@ -449,7 +449,10 @@ def workflowFindOrigin_allow(debugBool, database, src, tgt, cls, prv):
     ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, clsLblSetId, parameterLabelSetId)
     if not ruleId == None:
       workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+  for parameterLabelSetId in parameterLabelSetIds:
     for parameterId in parameterLabelSetIds:
+      if type(parameterLabelSetId) == tuple:
+        parameterLabelSetId = int(''.join(map(str, parameterLabelSetId)))
       parameterId = int(''.join(map(str, parameterId)))
       ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, clsLblSetId, prvLblSetId)
       if not ruleId == None:
@@ -466,33 +469,12 @@ def workflowFindOrigin_allow(debugBool, database, src, tgt, cls, prv):
       ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, parameterLabelSetId, parameterId)
       if not ruleId == None:
         workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-      for labelSetId in parameterLabelSetIds:
-        labelSetId = int(''.join(map(str, labelSetId)))
-        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, labelSetId, prvLblSetId)
-        if not ruleId == None:
-          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, labelSetId, clsLblSetId, parameterId)
-        if not ruleId == None:
-          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-        ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, tgtLblSetId, labelSetId, parameterId)
-        if not ruleId == None:
-          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-        ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, parameterLabelSetId, labelSetId, parameterId)
-        if not ruleId == None:
-          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-        for Id in parameterLabelSetIds:
-          Id = int(''.join(map(str, Id)))
-          ruleId = workflowFindRuleHitId(debugBool, db, 1, parameterLabelSetId, parameterId, labelSetId, Id)
-        if not ruleId == None:
-          workflowFindDefinitionNameAllow(debugBool, db, ruleId)
-  db.execute('''select statementId from tb_statement_rule where ruleClass = 1 and SourceId = ?
-  and TargetId = ? and ClassesId = ? and PrivilegeId = ?''', ruleIds)
-  ruleId = db.fetchone()
-#  if ruleId == None:
-#    print('Statement: "allow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
-#    sys.exit()
-
-#  print('  -> allow %s %s:%s %s' % (src, oldtgt, cls, prv))
+  ruleId = workflowFindRuleHitId(debugBool, db, 1, srcLblSetId, tgtLblSetId, clsLblSetId, prvLblSetId)
+  if not ruleId == None:
+     workflowFindDefinitionNameAllow(debugBool, db, ruleId)
+  else:
+    print('Statement: "allow %s %s:%s %s"\nis non-existent in seorigin database.' % (src, oldtgt, cls, prv))
+    sys.exit()
 
 def workflowFindOrigin_neverallow(debugBool, database, src, tgt, cls, prv):
 
