@@ -1670,7 +1670,7 @@ def insertDefinition( outputFile, record ):
                         sys.exit()
                     content = (definitionId, statementId, )
                     database.execute('''select * from tb_definition_content where definitionId = ? 
-                    and statementTypeTransId = ?''', content):
+                    and statementTypeTransId = ?''', content)
                     postPopCheck = database.fetchone()
                     if postPopCheck == None:
                         database.execute('''insert into tb_definition_content values
@@ -1713,6 +1713,7 @@ def main():
     print("\nComplete! For your time, enjoy this picture of a cat:")
     print("http://catmacros.files.wordpress.com/2010/03/cat_portals.jpg\n")
     print("Enjoy your fresh new database! Be careful, it may be hot. ;)")
+
 """
 The main function is run below.
 """
